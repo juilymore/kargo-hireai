@@ -1,36 +1,36 @@
 import type { ScoringResult } from "@/lib/types";
 
 const TIER_STYLES: Record<string, string> = {
-  "STRONG SHORTLIST": "bg-green-100 text-green-800",
-  SHORTLIST: "bg-blue-100 text-blue-800",
-  HOLD: "bg-amber-100 text-amber-800",
-  "DECLINE-ELIGIBLE": "bg-red-100 text-red-800",
+  "STRONG SHORTLIST": "bg-green-500/15 text-green-300",
+  SHORTLIST: "bg-blue-500/15 text-blue-300",
+  HOLD: "bg-amber-500/15 text-amber-300",
+  "DECLINE-ELIGIBLE": "bg-red-500/15 text-red-300",
 };
 
 const VERDICT_STYLES: Record<string, string> = {
-  APPROVE: "bg-green-100 text-green-800",
-  REJECT: "bg-red-100 text-red-800",
-  REVIEW: "bg-amber-100 text-amber-800",
+  APPROVE: "bg-green-500/15 text-green-300",
+  REJECT: "bg-red-500/15 text-red-300",
+  REVIEW: "bg-amber-500/15 text-amber-300",
 };
 
 export default function ScoringDetail({ results }: { results: ScoringResult[] }) {
   if (results.length === 0) {
-    return <p className="text-sm text-neutral-500">Not yet scored.</p>;
+    return <p className="text-sm text-neutral-400">Not yet scored.</p>;
   }
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {results.map((r) => (
-        <div key={r.id} className="rounded-md border border-neutral-200 p-3 space-y-2">
+        <div key={r.id} className="rounded-md border border-neutral-800 bg-neutral-950/40 p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-sm">{r.role_scored}</span>
+            <span className="font-semibold text-sm text-neutral-100">{r.role_scored}</span>
             {r.needs_manual_review ? (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-800">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-500/15 text-red-300">
                 AI parsing failed — review manually
               </span>
             ) : (
               <span
-                className={`text-xs font-medium px-2 py-0.5 rounded-full ${TIER_STYLES[r.tier ?? ""] ?? "bg-neutral-100 text-neutral-600"}`}
+                className={`text-xs font-medium px-2 py-0.5 rounded-full ${TIER_STYLES[r.tier ?? ""] ?? "bg-neutral-800 text-neutral-400"}`}
               >
                 {r.tier ?? "—"}
               </span>
@@ -39,18 +39,18 @@ export default function ScoringDetail({ results }: { results: ScoringResult[] })
 
           {!r.needs_manual_review && (
             <>
-              <div className="flex gap-3 text-sm">
+              <div className="flex gap-3 text-sm text-neutral-300">
                 <span>
-                  JD <b>{r.jd_score}</b>/40
+                  JD <b className="text-neutral-100">{r.jd_score}</b>/40
                 </span>
                 <span>
-                  Arjun <b>{r.arjun_score}</b>/60
+                  Arjun <b className="text-neutral-100">{r.arjun_score}</b>/60
                 </span>
                 <span>
-                  Total <b>{r.total_score}</b>/100
+                  Total <b className="text-neutral-100">{r.total_score}</b>/100
                 </span>
                 <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${VERDICT_STYLES[r.verdict ?? ""] ?? "bg-neutral-100"}`}
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${VERDICT_STYLES[r.verdict ?? ""] ?? "bg-neutral-800 text-neutral-400"}`}
                 >
                   {r.verdict ?? "—"}
                 </span>
@@ -65,7 +65,7 @@ export default function ScoringDetail({ results }: { results: ScoringResult[] })
                   {r.flags.map((f, i) => (
                     <span
                       key={i}
-                      className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800"
+                      className="text-xs px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300"
                     >
                       {f}
                     </span>
@@ -108,7 +108,7 @@ function Detail({ label, text }: { label: string; text: string | null }) {
   return (
     <div>
       <p className="text-xs font-medium text-neutral-500 mb-0.5">{label}</p>
-      <p className="text-sm text-neutral-700">{text}</p>
+      <p className="text-sm text-neutral-300">{text}</p>
     </div>
   );
 }

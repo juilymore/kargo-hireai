@@ -22,7 +22,7 @@ export async function extractCvText(
       data: Buffer
     ) => Promise<{ text: string }>;
     const result = await pdfParse(buffer);
-    return result.text;
+    return repairShatteredText(result.text);
   }
 
   if (ext === "docx") {
@@ -31,4 +31,19 @@ export async function extractCvText(
   }
 
   throw new Error(`Unsupported file type: .${ext}. Only PDF and DOCX are supported.`);
+}
+
+// Some PDFs (typically docx-to-pdf conversions) make pdf-parse emit one
+// character per line — "A\nd\ni\nt\ny\na" instead of "Aditya" — because every
+// glyph lands at a slightly different y-coordinate. Word/line boundaries in
+// the real document still survive as their own single-space "line" in that
+// stream, so once this pattern is detected, simply dropping every newline
+// reconstructs the original text correctly.
+function repairShatteredText(text: string): string {
+  const lines = text.split("\n");
+  const nonEmpty = lines.filter((l) => l.length > 0);
+  const isShattered =
+    nonEmpty.length > 20 &&
+    nonEmpty.filter((l) => l.length === 1).length / nonEmpty.length > 0.6;
+  return isShattered ? lines.join("") : text;
 }

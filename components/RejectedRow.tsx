@@ -18,12 +18,12 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
 
   return (
     <>
-      <tr className="border-b border-neutral-100">
-        <td className="py-2 pr-3 text-xs text-neutral-400">#{candidate.srno}</td>
-        <td className="py-2 pr-3 font-medium">{candidate.name || "Unnamed"}</td>
+      <tr className="border-b border-neutral-800">
+        <td className="py-2 pr-3 text-xs text-neutral-500">#{candidate.srno}</td>
+        <td className="py-2 pr-3 font-medium text-neutral-100">{candidate.name || "Unnamed"}</td>
         <td className="py-2 pr-3">
           {candidate.resume_public_url && (
-            <a href={candidate.resume_public_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+            <a href={candidate.resume_public_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
               Resume
             </a>
           )}
@@ -33,22 +33,22 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
         </td>
         <td className="py-2 pr-3">
           {emailSent ? (
-            <span className="text-green-700">Sent</span>
+            <span className="text-green-400">Sent</span>
           ) : emailFailed ? (
-            <span className="text-red-600">Failed</span>
+            <span className="text-red-400">Failed</span>
           ) : (
-            <span className="text-neutral-400">Not sent</span>
+            <span className="text-neutral-500">Not sent</span>
           )}
         </td>
-        <td className="py-2 pr-3 max-w-xs truncate" title={latestComment}>
+        <td className="py-2 pr-3 max-w-xs truncate text-neutral-300" title={latestComment}>
           {latestComment}
         </td>
         <td className="py-2 pr-3 whitespace-nowrap">
-          <button onClick={() => setExpanded((e) => !e)} className="text-neutral-500 hover:text-neutral-800 mr-3">
+          <button onClick={() => setExpanded((e) => !e)} className="text-neutral-500 hover:text-neutral-200 mr-3">
             {expanded ? "Hide" : "View"}
           </button>
           {emailFailed && (
-            <button onClick={() => setModal(true)} className="text-red-600 hover:underline">
+            <button onClick={() => setModal(true)} className="text-red-400 hover:underline">
               Resend
             </button>
           )}

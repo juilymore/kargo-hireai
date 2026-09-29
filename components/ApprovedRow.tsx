@@ -65,12 +65,12 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
   }
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4 space-y-2">
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 space-y-2">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-400">#{candidate.srno}</span>
-            <h3 className="font-semibold">{candidate.name || "Unnamed candidate"}</h3>
+            <span className="text-xs text-neutral-500">#{candidate.srno}</span>
+            <h3 className="font-semibold text-neutral-100">{candidate.name || "Unnamed candidate"}</h3>
           </div>
           <p className="text-xs text-neutral-500">
             Added {new Date(candidate.date_added).toLocaleDateString()} ·{" "}
@@ -78,16 +78,16 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
           </p>
         </div>
         {candidate.resume_public_url && (
-          <a href={candidate.resume_public_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline">
+          <a href={candidate.resume_public_url} target="_blank" rel="noreferrer" className="text-sm text-indigo-400 hover:underline">
             Resume
           </a>
         )}
       </div>
 
-      {brief && <p className="text-sm text-neutral-700">{brief}</p>}
+      {brief && <p className="text-sm text-neutral-300">{brief}</p>}
 
       {probes.length > 0 && (
-        <ul className="text-sm list-disc list-inside text-neutral-600">
+        <ul className="text-sm list-disc list-inside text-neutral-400">
           {probes.map((q, i) => (
             <li key={i}>{q}</li>
           ))}
@@ -104,7 +104,7 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
               setStatus(value);
               updateInterview({ interview_status: value });
             }}
-            className="ml-1 rounded border border-neutral-300 px-2 py-1 text-sm font-normal"
+            className="ml-1 rounded border border-neutral-700 bg-neutral-800 text-neutral-100 px-2 py-1 text-sm font-normal"
           >
             <option value="NOT_SCHEDULED">Not Scheduled</option>
             <option value="SCHEDULED">Scheduled</option>
@@ -115,7 +115,7 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
         <select
           value={roleHiredFor}
           onChange={(e) => setRoleHiredFor(e.target.value as RoleScored)}
-          className="rounded border border-neutral-300 px-2 py-1 text-sm"
+          className="rounded border border-neutral-700 bg-neutral-800 text-neutral-100 px-2 py-1 text-sm"
         >
           <option value="PM">PM</option>
           <option value="SPM">SPM</option>
@@ -124,17 +124,17 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
         <button
           onClick={handleConvertClick}
           disabled={busy}
-          className="px-3 py-1.5 rounded-md bg-neutral-900 text-white text-sm font-semibold disabled:opacity-40"
+          className="px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-40"
         >
           Convert to Hired
         </button>
 
-        <button onClick={() => setExpanded((e) => !e)} className="text-sm text-neutral-500 hover:text-neutral-800">
+        <button onClick={() => setExpanded((e) => !e)} className="text-sm text-neutral-500 hover:text-neutral-200">
           {expanded ? "Hide full summary ▲" : "View full summary ▼"}
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       <textarea
         value={notes}
@@ -142,7 +142,7 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
         onBlur={() => updateInterview({ interview_notes: notes })}
         placeholder="Interview notes (autosaves on blur)…"
         rows={2}
-        className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
+        className="w-full rounded-md border border-neutral-700 bg-neutral-800 text-neutral-100 placeholder-neutral-500 px-2 py-1.5 text-sm"
       />
 
       {expanded && <ScoringDetail results={candidate.scoring_results} />}

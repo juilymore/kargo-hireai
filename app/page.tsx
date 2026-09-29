@@ -8,8 +8,8 @@ export default async function QueuePage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Queue</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-xl font-semibold text-neutral-100">Queue</h1>
+        <p className="text-sm text-neutral-400">
           New candidates, newest first. Approve, Reject or Hold each one — a comment is required.
         </p>
       </div>
@@ -29,8 +29,8 @@ export default async function QueuePage() {
 
 function EmptyState() {
   return (
-    <div className="rounded-lg border border-dashed border-neutral-300 p-10 text-center text-neutral-500">
-      <p className="font-medium">Queue is empty</p>
+    <div className="rounded-lg border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
+      <p className="font-medium text-neutral-200">Queue is empty</p>
       <p className="text-sm mt-1">Upload a CV to get started — click “+ Add CVs” above.</p>
     </div>
   );

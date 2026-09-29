@@ -40,7 +40,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-50 text-neutral-900">
+      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
         {counts === null ? (
           <SetupNotice missingEnvVars={missingEnvVars} />
         ) : (
@@ -57,13 +57,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 function SetupNotice({ missingEnvVars }: { missingEnvVars: string[] }) {
   return (
     <main className="flex-1 flex items-center justify-center p-6">
-      <div className="max-w-md w-full rounded-lg border border-amber-200 bg-amber-50 p-6 space-y-3">
-        <h1 className="font-semibold text-amber-900">HireAI isn&apos;t configured yet</h1>
-        <p className="text-sm text-amber-800">
+      <div className="max-w-md w-full rounded-lg border border-amber-800/50 bg-amber-950/40 p-6 space-y-3">
+        <h1 className="font-semibold text-amber-300">HireAI isn&apos;t configured yet</h1>
+        <p className="text-sm text-amber-200/80">
           Fill in the missing environment variables in <code>.env.local</code> and restart the
           dev server:
         </p>
-        <ul className="text-sm font-mono text-amber-900 space-y-0.5">
+        <ul className="text-sm font-mono text-amber-200 space-y-0.5">
           {missingEnvVars.map((key) => (
             <li key={key}>{key}</li>
           ))}

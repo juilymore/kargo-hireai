@@ -8,15 +8,15 @@ export default async function HoldPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Hold</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-xl font-semibold text-neutral-100">Hold</h1>
+        <p className="text-sm text-neutral-400">
           Held candidates aren&apos;t a dead end — Approve, Reject or Hold again whenever you revisit them.
         </p>
       </div>
 
       {candidates.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-neutral-300 p-10 text-center text-neutral-500">
-          <p className="font-medium">No one on hold</p>
+        <div className="rounded-lg border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
+          <p className="font-medium text-neutral-200">No one on hold</p>
         </div>
       ) : (
         <div className="space-y-3">
