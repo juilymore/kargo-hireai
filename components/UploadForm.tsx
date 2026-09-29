@@ -45,6 +45,22 @@ export default function UploadForm() {
     setQueue((prev) => prev.map((q, i) => (i === index ? { ...q, status, message } : q)));
   }
 
+  // fetch's res.json() throws an unhelpful "Unexpected end of JSON input"
+  // when the server crashed/timed out and returned an empty or non-JSON
+  // body. Reading as text first lets us surface the actual HTTP status and
+  // response body instead, so failures are diagnosable from the UI.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function parseJsonResponse(res: Response): Promise<any> {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(
+        `Server returned an invalid response (HTTP ${res.status}): ${text.slice(0, 200) || "(empty body)"}`
+      );
+    }
+  }
+
   async function submitAll() {
     setSubmitting(true);
     for (let i = 0; i < queue.length; i++) {
@@ -56,7 +72,7 @@ export default function UploadForm() {
         formData.append("file", item.file);
         formData.append("role_requested", item.role);
         const uploadRes = await fetch("/api/upload-cv", { method: "POST", body: formData });
-        const uploadJson = await uploadRes.json();
+        const uploadJson = await parseJsonResponse(uploadRes);
         if (!uploadRes.ok) {
           updateStatus(i, "error", uploadJson.error ?? "Upload failed");
           continue;
@@ -77,7 +93,7 @@ export default function UploadForm() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ candidate_id: candidate.id, role_scored: role }),
           });
-          const scoreJson = await scoreRes.json();
+          const scoreJson = await parseJsonResponse(scoreRes);
           if (!scoreRes.ok) {
             updateStatus(i, "error", scoreJson.error ?? `Scoring failed for ${role}`);
             continue;
@@ -122,6 +138,14 @@ export default function UploadForm() {
       </div>
 
       {queue.length > 0 && (
+        <div className="flex items-center gap-3 px-3 text-xs font-medium text-neutral-500">
+          <span className="flex-1">File</span>
+          <span className="w-32">Score against</span>
+          <span className="w-20">Status</span>
+        </div>
+      )}
+
+      {queue.length > 0 && (
         <ul className="space-y-2">
           {queue.map((item, i) => (
             <li
@@ -134,11 +158,12 @@ export default function UploadForm() {
                   value={item.role}
                   onChange={(e) => updateRole(i, e.target.value as RoleRequested)}
                   disabled={submitting || item.status !== "pending"}
-                  className="rounded border border-neutral-700 bg-neutral-800 text-neutral-100 text-sm px-2 py-1"
+                  aria-label="Role to score against"
+                  className="w-32 rounded border border-neutral-700 bg-neutral-800 text-neutral-100 text-sm px-2 py-1"
                 >
-                  <option value="BOTH">Both</option>
-                  <option value="PM">PM</option>
-                  <option value="SPM">SPM</option>
+                  <option value="BOTH">Both (PM + SPM)</option>
+                  <option value="PM">PM only</option>
+                  <option value="SPM">SPM only</option>
                 </select>
                 <StatusBadge status={item.status} message={item.message} />
                 {item.status === "pending" && (

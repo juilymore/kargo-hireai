@@ -4,6 +4,7 @@ import { extractCvText } from "@/lib/parse-cv";
 import type { RoleRequested } from "@/lib/types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const ALLOWED_EXTENSIONS = ["pdf", "docx"];
 const VALID_ROLES: RoleRequested[] = ["PM", "SPM", "BOTH"];
@@ -12,6 +13,20 @@ const VALID_ROLES: RoleRequested[] = ["PM", "SPM", "BOTH"];
 // per file so each file's own role selection and progress state are
 // independent (Section 5.1).
 export async function POST(req: NextRequest) {
+  try {
+    return await handleUpload(req);
+  } catch (err) {
+    // Guarantees the client always gets JSON back, even on an unexpected
+    // crash — an empty/non-JSON response is what produced the confusing
+    // "Unexpected end of JSON input" error in the UI.
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unknown server error" },
+      { status: 500 }
+    );
+  }
+}
+
+async function handleUpload(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file");
   const roleRequested = formData.get("role_requested");

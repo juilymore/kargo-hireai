@@ -4,6 +4,11 @@ import { scoreCv } from "@/lib/gemini";
 import type { RoleScored } from "@/lib/types";
 
 export const runtime = "nodejs";
+// Gemini scoring routinely takes 20-30s+ (more with the retry-on-bad-JSON
+// path); Vercel's default function timeout is much shorter than that and
+// kills the request mid-call, returning an empty body that shows up in the
+// client as "Unexpected end of JSON input". Give it real headroom.
+export const maxDuration = 60;
 
 const VALID_ROLES: RoleScored[] = ["PM", "SPM"];
 
@@ -12,6 +17,17 @@ const VALID_ROLES: RoleScored[] = ["PM", "SPM"];
 // is responsible for that, so the two verdicts are always independent
 // (guardrail #7, never merged/averaged).
 export async function POST(req: NextRequest) {
+  try {
+    return await handleScore(req);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unknown server error" },
+      { status: 500 }
+    );
+  }
+}
+
+async function handleScore(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const candidateId = body?.candidate_id;
   const roleScored = body?.role_scored;
