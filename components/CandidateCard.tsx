@@ -7,18 +7,20 @@ import ScoringDetail from "./ScoringDetail";
 import EmailPreviewModal from "./EmailPreviewModal";
 
 const VERDICT_STYLES: Record<string, string> = {
-  APPROVE: "bg-green-500/15 text-green-300",
-  REJECT: "bg-red-500/15 text-red-300",
-  REVIEW: "bg-amber-500/15 text-amber-300",
+  APPROVE: "bg-green-500/10 text-green-300 border border-green-800/40",
+  REJECT: "bg-red-500/10 text-red-300 border border-red-800/40",
+  REVIEW: "bg-amber-500/10 text-amber-300 border border-amber-800/40",
 };
 
 export default function CandidateCard({
   candidate,
   schedulingLink,
+  defaultTestEmail = "",
   allowActions = true,
 }: {
   candidate: CandidateWithDetails;
   schedulingLink: string;
+  defaultTestEmail?: string;
   allowActions?: boolean;
 }) {
   const router = useRouter();
@@ -28,14 +30,12 @@ export default function CandidateCard({
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<"APPROVE_INVITE" | "REJECT_NOTICE" | null>(null);
 
+  const primaryResult = candidate.scoring_results[0];
   const overallVerdict = candidate.scoring_results.find((r) => r.verdict)?.verdict;
+  const needsReview = candidate.scoring_results.some((r) => r.needs_manual_review);
 
   async function handleAction(action: ActionType) {
     setError(null);
-    if (!comment.trim()) {
-      setError("A comment is required before you can Approve, Reject or Hold.");
-      return;
-    }
     setSubmitting(action);
     const res = await fetch("/api/action", {
       method: "POST",
@@ -60,19 +60,24 @@ export default function CandidateCard({
   }
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition-shadow duration-200 hover:shadow-lg hover:shadow-black/30">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-neutral-500">#{candidate.srno}</span>
             <h3 className="font-semibold text-neutral-100">{candidate.name || "Unnamed candidate"}</h3>
-            {overallVerdict && (
+            {needsReview ? (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-500/10 text-red-300 border border-red-800/40">
+                AI parsing failed — review manually
+              </span>
+            ) : overallVerdict ? (
               <span
                 className={`text-xs font-medium px-2 py-0.5 rounded-full ${VERDICT_STYLES[overallVerdict]}`}
+                title="This is the AI's suggested action, not a decision — only Arjun's Approve/Reject/Hold below is final."
               >
-                HireAI: {overallVerdict}
+                AI recommends: {overallVerdict}
               </span>
-            )}
+            ) : null}
           </div>
           <p className="text-xs text-neutral-500 mt-0.5">
             Added {new Date(candidate.date_added).toLocaleDateString()} · Requested{" "}
@@ -85,7 +90,7 @@ export default function CandidateCard({
             href={candidate.resume_public_url}
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-indigo-400 hover:underline whitespace-nowrap"
+            className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-md bg-neutral-800 text-indigo-300 hover:bg-neutral-700 hover:text-indigo-200 transition-colors whitespace-nowrap"
           >
             View resume
           </a>
@@ -101,15 +106,19 @@ export default function CandidateCard({
         ))}
       </div>
 
+      {primaryResult?.why_ranked_here && (
+        <p className="mt-2 text-sm text-neutral-400 italic">{primaryResult.why_ranked_here}</p>
+      )}
+
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="mt-2 text-sm text-neutral-500 hover:text-neutral-200"
+        className="mt-2 text-xs font-medium px-2.5 py-1 rounded-md bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors"
       >
         {expanded ? "Hide details ▲" : "Show details ▼"}
       </button>
 
       {expanded && (
-        <div className="mt-3">
+        <div className="mt-3 animate-fade-in">
           <ScoringDetail results={candidate.scoring_results} />
         </div>
       )}
@@ -122,10 +131,11 @@ export default function CandidateCard({
 
       {allowActions && (
         <div className="mt-3 space-y-2">
+          <p className="text-xs font-medium text-neutral-500">Your decision (Arjun)</p>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Comment (required before Approve / Reject / Hold)…"
+            placeholder="Comment (optional) — add context for later reference…"
             rows={2}
             className="w-full rounded-md border border-neutral-700 bg-neutral-800 text-neutral-100 placeholder-neutral-500 px-2 py-1.5 text-sm"
           />
@@ -134,21 +144,21 @@ export default function CandidateCard({
             <button
               onClick={() => handleAction("APPROVE")}
               disabled={submitting !== null}
-              className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm font-semibold disabled:opacity-40"
+              className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm font-semibold shadow-md shadow-green-900/30 hover:bg-green-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
             >
               {submitting === "APPROVE" ? "…" : "Approve"}
             </button>
             <button
               onClick={() => handleAction("REJECT")}
               disabled={submitting !== null}
-              className="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold disabled:opacity-40"
+              className="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold shadow-md shadow-red-900/30 hover:bg-red-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
             >
               {submitting === "REJECT" ? "…" : "Reject"}
             </button>
             <button
               onClick={() => handleAction("HOLD")}
               disabled={submitting !== null}
-              className="px-3 py-1.5 rounded-md bg-amber-500 text-white text-sm font-semibold disabled:opacity-40"
+              className="px-3 py-1.5 rounded-md bg-amber-500 text-white text-sm font-semibold shadow-md shadow-amber-900/30 hover:bg-amber-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
             >
               {submitting === "HOLD" ? "…" : "Hold"}
             </button>
@@ -161,8 +171,11 @@ export default function CandidateCard({
           candidateId={candidate.id}
           candidateName={candidate.name || "there"}
           candidateEmail={candidate.email}
+          defaultTestEmail={defaultTestEmail}
           emailType={modal}
           schedulingLink={schedulingLink}
+          factualDetail={primaryResult?.one_factual_detail ?? null}
+          roleScored={primaryResult?.role_scored ?? null}
           onClose={() => {
             setModal(null);
             router.refresh();

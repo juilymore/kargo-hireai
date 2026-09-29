@@ -4,6 +4,7 @@ import CandidateCard from "@/components/CandidateCard";
 export default async function HoldPage() {
   const candidates = await getCandidatesByStatus("HOLD");
   const schedulingLink = process.env.SCHEDULING_LINK ?? "";
+  const defaultTestEmail = process.env.DEFAULT_TEST_EMAIL ?? "";
 
   return (
     <div className="space-y-4">
@@ -21,7 +22,12 @@ export default async function HoldPage() {
       ) : (
         <div className="space-y-3">
           {candidates.map((c) => (
-            <CandidateCard key={c.id} candidate={c} schedulingLink={schedulingLink} />
+            <CandidateCard
+              key={c.id}
+              candidate={c}
+              schedulingLink={schedulingLink}
+              defaultTestEmail={defaultTestEmail}
+            />
           ))}
         </div>
       )}

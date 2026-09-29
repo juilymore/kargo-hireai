@@ -6,6 +6,15 @@ import type {
   ScoringResult,
 } from "./types";
 
+// one_factual_detail isn't its own DB column — it rides inside the stored
+// raw_llm_response JSON, so pull it out here rather than making every UI
+// component parse that blob itself.
+function withFactualDetail(result: ScoringResult): ScoringResult {
+  const raw = result.raw_llm_response as Record<string, unknown> | null;
+  const detail = raw && typeof raw.one_factual_detail === "string" ? raw.one_factual_detail : null;
+  return { ...result, one_factual_detail: detail };
+}
+
 // Keeps only the latest scoring_results row per role_scored (idempotent
 // scoring, guardrail #5 — history stays in the table, just not shown here).
 function latestPerRole(results: ScoringResult[]): ScoringResult[] {
@@ -16,7 +25,7 @@ function latestPerRole(results: ScoringResult[]): ScoringResult[] {
       byRole.set(r.role_scored, r);
     }
   }
-  return Array.from(byRole.values());
+  return Array.from(byRole.values()).map(withFactualDetail);
 }
 
 export async function getCandidatesByStatus(

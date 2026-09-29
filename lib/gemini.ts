@@ -24,6 +24,7 @@ const RESPONSE_SCHEMA = {
     why_ranked_here: { type: Type.STRING },
     probe_questions: { type: Type.ARRAY, items: { type: Type.STRING } },
     decline_reason_if_any: { type: Type.STRING },
+    one_factual_detail: { type: Type.STRING },
   },
   required: [
     "name",
@@ -44,6 +45,7 @@ const RESPONSE_SCHEMA = {
     "why_ranked_here",
     "probe_questions",
     "decline_reason_if_any",
+    "one_factual_detail",
   ],
 };
 
@@ -68,7 +70,12 @@ output fields into this schema: jd_summary = "WHAT MATCHES THE JD", arjun_summar
 "WHAT MATCHES ARJUN'S PATTERN", risk_summary = "BIGGEST RISK IF HIRED" plus any \
 verification-layer caveats, why_ranked_here = "WHY RANKED HERE", closest_past_hire = \
 "CLOSEST PAST HIRE" line, probe_questions = the 3 "PROBE IN INTERVIEW" questions, \
-decline_reason_if_any = the "IF DECLINED" factual sentence (empty string if not declined).
+decline_reason_if_any = the "IF DECLINED" factual sentence (empty string if not declined). \
+one_factual_detail = one neutral, purely factual detail from the CV — a specific project, \
+tool, company, or accomplishment mentioned in their own words — suitable for a warm, personal \
+email opener. It must contain NO evaluation, no score, no tier, and no rubric language of any \
+kind (e.g. good: "the shipment tracker you built at Rohan Logistics"; bad: anything mentioning \
+"exceeds", "shortlist", a lens name, or a judgment).
 
 === RUBRIC (verbatim, do not deviate) ===
 ${rubric}

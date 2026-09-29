@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { RoleRequested, RoleScored } from "@/lib/types";
 
 type FileStatus =
@@ -19,7 +18,6 @@ interface QueuedFile {
 }
 
 export default function UploadForm() {
-  const router = useRouter();
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -87,6 +85,7 @@ export default function UploadForm() {
           item.role === "BOTH" ? ["PM", "SPM"] : [item.role as RoleScored];
 
         updateStatus(i, "scoring");
+        let scoringFailed = false;
         for (const role of rolesToScore) {
           const scoreRes = await fetch("/api/score-candidate", {
             method: "POST",
@@ -95,11 +94,14 @@ export default function UploadForm() {
           });
           const scoreJson = await parseJsonResponse(scoreRes);
           if (!scoreRes.ok) {
+            // Don't break — a BOTH candidate should still get whichever role
+            // succeeds. But remember the failure so it isn't overwritten
+            // with "done" below once the loop finishes.
             updateStatus(i, "error", scoreJson.error ?? `Scoring failed for ${role}`);
-            continue;
+            scoringFailed = true;
           }
         }
-        updateStatus(i, "done");
+        if (!scoringFailed) updateStatus(i, "done");
       } catch (err) {
         updateStatus(i, "error", err instanceof Error ? err.message : "Unknown error");
       }
@@ -111,7 +113,7 @@ export default function UploadForm() {
 
   return (
     <div className="space-y-4">
-      <label className="block border-2 border-dashed border-neutral-700 rounded-lg p-6 text-center cursor-pointer hover:border-neutral-600">
+      <label className="group flex flex-col items-center gap-2 border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center cursor-pointer bg-neutral-900/40 hover:border-indigo-500/60 hover:bg-neutral-900 transition-all duration-200">
         <input
           type="file"
           accept=".pdf,.docx"
@@ -120,9 +122,23 @@ export default function UploadForm() {
           onChange={(e) => addFiles(e.target.files)}
           disabled={submitting}
         />
-        <span className="text-sm text-neutral-400">
+        <svg
+          className="w-9 h-9 text-neutral-600 group-hover:text-indigo-400 transition-colors duration-200"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 16V4m0 0L7 9m5-5l5 5M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"
+          />
+        </svg>
+        <span className="text-sm text-neutral-300">
           Click to choose files, or drag and drop PDF/DOCX here
         </span>
+        <span className="text-xs text-neutral-600">You can select multiple files at once</span>
       </label>
 
       <div title="Coming soon">
@@ -150,7 +166,7 @@ export default function UploadForm() {
           {queue.map((item, i) => (
             <li
               key={`${item.file.name}-${i}`}
-              className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2"
+              className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 transition-colors duration-200 hover:border-neutral-700"
             >
               <div className="flex items-center gap-3">
                 <span className="flex-1 truncate text-sm text-neutral-200">{item.file.name}</span>
@@ -188,17 +204,21 @@ export default function UploadForm() {
         <button
           onClick={submitAll}
           disabled={queue.length === 0 || submitting || allDone}
-          className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-40"
+          className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-semibold shadow-md shadow-indigo-900/40 hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
         >
           {submitting ? "Processing…" : "Upload & Score"}
         </button>
         {allDone && (
-          <button
-            onClick={() => router.push("/")}
-            className="px-4 py-2 rounded-md border border-neutral-700 text-neutral-200 text-sm font-medium hover:bg-neutral-800"
+          // A plain <a> instead of client-side router.push: this button only
+          // ever appears after a multi-step async flow, and a full navigation
+          // is a more reliable way to land on the Queue than trusting the
+          // router's client state at that point.
+          <a
+            href="/"
+            className="px-4 py-2 rounded-md border border-neutral-700 text-neutral-200 text-sm font-medium hover:bg-neutral-800 transition-colors"
           >
             Go to Queue
-          </button>
+          </a>
         )}
       </div>
     </div>
@@ -220,9 +240,10 @@ function StatusBadge({ status, message }: { status: FileStatus; message?: string
     done: "Done",
     error: "Error",
   };
+  const isBusy = status === "uploading" || status === "scoring";
   return (
     <span
-      className={`text-xs font-medium px-2 py-1 rounded-full ${styles[status]}`}
+      className={`text-xs font-medium px-2 py-1 rounded-full ${styles[status]} ${isBusy ? "animate-pulse" : ""}`}
       title={message}
     >
       {labels[status]}

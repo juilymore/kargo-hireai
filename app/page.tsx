@@ -4,13 +4,14 @@ import CandidateCard from "@/components/CandidateCard";
 export default async function QueuePage() {
   const candidates = await getCandidatesByStatus("NEW");
   const schedulingLink = process.env.SCHEDULING_LINK ?? "";
+  const defaultTestEmail = process.env.DEFAULT_TEST_EMAIL ?? "";
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold text-neutral-100">Queue</h1>
         <p className="text-sm text-neutral-400">
-          New candidates, newest first. Approve, Reject or Hold each one — a comment is required.
+          New candidates, newest first. Approve, Reject or Hold each one.
         </p>
       </div>
 
@@ -19,7 +20,12 @@ export default async function QueuePage() {
       ) : (
         <div className="space-y-3">
           {candidates.map((c) => (
-            <CandidateCard key={c.id} candidate={c} schedulingLink={schedulingLink} />
+            <CandidateCard
+              key={c.id}
+              candidate={c}
+              schedulingLink={schedulingLink}
+              defaultTestEmail={defaultTestEmail}
+            />
           ))}
         </div>
       )}

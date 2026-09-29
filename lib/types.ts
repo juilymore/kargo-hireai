@@ -45,6 +45,9 @@ export interface ScoringResult {
   decline_reason_if_any: string | null;
   needs_manual_review: boolean;
   raw_llm_response: unknown;
+  // Not a stored column — pulled out of raw_llm_response at query time (see
+  // lib/queries.ts) so the UI doesn't have to parse that JSON blob itself.
+  one_factual_detail: string | null;
   created_at: string;
 }
 
@@ -104,6 +107,7 @@ export interface GeminiScoringResponse {
   why_ranked_here: string;
   probe_questions: string[];
   decline_reason_if_any: string;
+  one_factual_detail: string;
 }
 
 export interface CandidateWithDetails extends Candidate {

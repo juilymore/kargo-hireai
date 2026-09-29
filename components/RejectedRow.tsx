@@ -44,18 +44,24 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
           {latestComment}
         </td>
         <td className="py-2 pr-3 whitespace-nowrap">
-          <button onClick={() => setExpanded((e) => !e)} className="text-neutral-500 hover:text-neutral-200 mr-3">
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="text-xs font-medium px-2.5 py-1 rounded-md bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors mr-2"
+          >
             {expanded ? "Hide" : "View"}
           </button>
           {emailFailed && (
-            <button onClick={() => setModal(true)} className="text-red-400 hover:underline">
+            <button
+              onClick={() => setModal(true)}
+              className="text-xs font-medium px-2.5 py-1 rounded-md bg-red-500/10 text-red-300 border border-red-800/40 hover:bg-red-500/20 transition-colors"
+            >
               Resend
             </button>
           )}
         </td>
       </tr>
       {expanded && (
-        <tr>
+        <tr className="animate-fade-in">
           <td colSpan={7} className="pb-3">
             <ScoringDetail results={candidate.scoring_results} />
           </td>
@@ -68,6 +74,7 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
           candidateEmail={candidate.email}
           emailType="REJECT_NOTICE"
           schedulingLink=""
+          factualDetail={candidate.scoring_results[0]?.one_factual_detail ?? null}
           onClose={() => {
             setModal(false);
             router.refresh();

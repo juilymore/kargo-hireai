@@ -11,14 +11,16 @@ const STATUS_FOR_ACTION: Record<ActionType, CandidateStatus> = {
   HOLD: "HOLD",
 };
 
-// Records an Approve/Reject/Hold decision + its comment. Comment is required
-// at this layer too (guardrail #3), not just in the UI, since actions_log is
-// the audit trail the whole tool exists to create.
+// Records an Approve/Reject/Hold decision + its optional comment. (The
+// original build spec required a comment on every action; that guardrail was
+// deliberately relaxed at the product owner's request — the DB column stays
+// NOT NULL, so an empty comment is stored as an explicit placeholder rather
+// than requiring a schema migration.)
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const candidateId = body?.candidate_id;
   const action = body?.action;
-  const comment = body?.comment;
+  const comment = typeof body?.comment === "string" ? body.comment.trim() : "";
   const createdBy = typeof body?.created_by === "string" ? body.created_by : null;
 
   if (typeof candidateId !== "string") {
@@ -26,9 +28,6 @@ export async function POST(req: NextRequest) {
   }
   if (typeof action !== "string" || !VALID_ACTIONS.includes(action as ActionType)) {
     return NextResponse.json({ error: "action must be APPROVE, REJECT or HOLD" }, { status: 400 });
-  }
-  if (typeof comment !== "string" || comment.trim().length === 0) {
-    return NextResponse.json({ error: "comment is required" }, { status: 400 });
   }
 
   const supabase = supabaseAdmin();
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest) {
     .insert({
       candidate_id: candidateId,
       action,
-      comment: comment.trim(),
+      comment: comment || "(no comment provided)",
       created_by: createdBy,
     })
     .select()
