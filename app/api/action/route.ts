@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
+import type { ActionType, CandidateStatus } from "@/lib/types";
+
+export const runtime = "nodejs";
+
+const VALID_ACTIONS: ActionType[] = ["APPROVE", "REJECT", "HOLD"];
+const STATUS_FOR_ACTION: Record<ActionType, CandidateStatus> = {
+  APPROVE: "APPROVED",
+  REJECT: "REJECTED",
+  HOLD: "HOLD",
+};
+
+// Records an Approve/Reject/Hold decision + its comment. Comment is required
+// at this layer too (guardrail #3), not just in the UI, since actions_log is
+// the audit trail the whole tool exists to create.
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => null);
+  const candidateId = body?.candidate_id;
+  const action = body?.action;
+  const comment = body?.comment;
+  const createdBy = typeof body?.created_by === "string" ? body.created_by : null;
+
+  if (typeof candidateId !== "string") {
+    return NextResponse.json({ error: "Missing candidate_id" }, { status: 400 });
+  }
+  if (typeof action !== "string" || !VALID_ACTIONS.includes(action as ActionType)) {
+    return NextResponse.json({ error: "action must be APPROVE, REJECT or HOLD" }, { status: 400 });
+  }
+  if (typeof comment !== "string" || comment.trim().length === 0) {
+    return NextResponse.json({ error: "comment is required" }, { status: 400 });
+  }
+
+  const supabase = supabaseAdmin();
+
+  const { data: logEntry, error: logError } = await supabase
+    .from("actions_log")
+    .insert({
+      candidate_id: candidateId,
+      action,
+      comment: comment.trim(),
+      created_by: createdBy,
+    })
+    .select()
+    .single();
+
+  if (logError || !logEntry) {
+    return NextResponse.json(
+      { error: `Failed to record action: ${logError?.message}` },
+      { status: 500 }
+    );
+  }
+
+  const newStatus = STATUS_FOR_ACTION[action as ActionType];
+  const { data: candidate, error: updateError } = await supabase
+    .from("candidates")
+    .update({ status: newStatus, status_updated_at: new Date().toISOString() })
+    .eq("id", candidateId)
+    .select()
+    .single();
+
+  if (updateError || !candidate) {
+    return NextResponse.json(
+      { error: `Failed to update candidate status: ${updateError?.message}` },
+      { status: 500 }
+    );
+  }
+
+  // Approve creates the interviews row (NOT_SCHEDULED) so it shows up on the
+  // Approved tab immediately; Reject creates none (Section 5.2).
+  if (action === "APPROVE") {
+    await supabase
+      .from("interviews")
+      .upsert({ candidate_id: candidateId, interview_status: "NOT_SCHEDULED" }, {
+        onConflict: "candidate_id",
+        ignoreDuplicates: true,
+      });
+  }
+
+  return NextResponse.json({ action_log: logEntry, candidate });
+}
