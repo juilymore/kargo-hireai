@@ -110,29 +110,32 @@ export default function EmailPreviewModal({
           Drafted by HireAI — review and edit before sending. Nothing sends automatically.
         </p>
 
-        {!hasValidEmail && (
-          <div className="rounded-md bg-amber-950/40 border border-amber-800/50 p-2 space-y-1">
-            <label className="block text-xs font-medium text-amber-300">
-              No valid email on file — add one to enable Send
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="candidate@example.com"
-              className="w-full rounded border border-amber-800/50 bg-neutral-900 text-neutral-100 px-2 py-1 text-sm"
-            />
-          </div>
-        )}
-
-        {hasValidEmail && email !== candidateEmail && (
+        <div
+          className={
+            hasValidEmail
+              ? "space-y-1"
+              : "rounded-md bg-amber-950/40 border border-amber-800/50 p-2 space-y-1"
+          }
+        >
+          <label
+            className={`block text-xs font-medium ${hasValidEmail ? "text-neutral-500" : "text-amber-300"}`}
+          >
+            {hasValidEmail
+              ? "To (pulled from the CV — edit if you want to send elsewhere)"
+              : "No valid email on file — add one to enable Send"}
+          </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded border border-neutral-700 bg-neutral-800 text-neutral-100 px-2 py-1 text-sm"
+            placeholder="candidate@example.com"
+            className={
+              hasValidEmail
+                ? "w-full rounded border border-neutral-700 bg-neutral-800 text-neutral-100 px-2 py-1 text-sm"
+                : "w-full rounded border border-amber-800/50 bg-neutral-900 text-neutral-100 px-2 py-1 text-sm"
+            }
           />
-        )}
+        </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-500 mb-1">Subject</label>
