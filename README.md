@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HireAI
 
-## Getting Started
+An internal hiring dashboard for Kargo (a fictional Series A logistics SaaS
+company, per the case brief), built for the MESA Case 2 assignment. Vikram
+uploads CVs, Gemini scores each one against Arjun's resume rubric (PM/SPM),
+and Arjun reviews a queue and clicks Approve / Reject / Hold — with an
+editable email preview before anything is sent.
 
-First, run the development server:
+**Live app:** https://kargo-hireai.vercel.app
+**Repo:** https://github.com/juilymore/kargo-hireai
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Next.js 16** (App Router, TypeScript, Tailwind)
+- **Supabase** (Postgres + Storage) — no auth in v1, trusted internal tool
+- **Gemini API** (`gemini-3.1-pro-preview`) for CV scoring
+- **Resend** for the Approve/Reject emails
+- **Vercel** for hosting
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Data model
 
-## Learn More
+See [`supabase/schema.sql`](supabase/schema.sql) for the full schema:
+`candidates`, `scoring_results` (one row per candidate × role scored, PM and
+SPM never merged into one score), `actions_log` (append-only audit trail —
+every Approve/Reject/Hold requires a comment), `emails_log`, `interviews`,
+and `hires`.
 
-To learn more about Next.js, take a look at the following resources:
+## Local setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Clone the repo and `npm install`.
+2. Copy `.env.local.example` to `.env.local` and fill in:
+   - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — from your Supabase
+     project's API settings.
+   - `GEMINI_API_KEY` — from [Google AI Studio](https://aistudio.google.com).
+   - `RESEND_API_KEY` / `RESEND_FROM_EMAIL` — see **Email sending** below.
+   - `SCHEDULING_LINK` — any URL you want candidates to book time with
+     (Google Calendar, Calendly, etc.) — it's just dropped into the email
+     body verbatim.
+3. Run [`supabase/schema.sql`](supabase/schema.sql) in your Supabase
+   project's SQL Editor once, to create the tables and the `resumes`
+   storage bucket.
+4. `npm run dev` and open `http://localhost:3000`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Email sending
 
-## Deploy on Vercel
+Resend requires the **sending domain** to be verified before it will
+deliver mail. If you don't own a domain, use `onboarding@resend.dev` as
+`RESEND_FROM_EMAIL` — it works, but Resend restricts it to sending only to
+the email address on your own Resend account, so it's fine for demos but
+not for emailing real candidates. To send to anyone, verify your own
+domain at [resend.com/domains](https://resend.com/domains) and use an
+address on it instead.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploying on Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Import the repo on [vercel.com](https://vercel.com), add the same 6
+environment variables above in **Settings → Environment Variables**
+(covering Production + Preview), and deploy. Vercel's default assumption
+is that your Production branch is named `main` — if your repo's default
+branch is `master`, either rename it to `main` or change the Production
+Branch setting under **Settings → Environments → Production**.
+
+## Notable build decisions
+
+A few calls made during the build that aren't obvious from the code:
+
+- **PM/SPM, not PM/APM.** The build prompt mentioned APM at one point —
+  that was a typo caught during planning. The app scores PM and SPM
+  exactly as the rubric defines them, with no remapping.
+- **Hold is its own tab, not also shown at the bottom of the Queue.** The
+  case brief could be read either way; this app treats New/Approved/
+  Rejected/Hold/Hired as mutually exclusive buckets for a simpler mental
+  model.
+- **No "we'll keep your profile on file" line in reject emails** — no
+  re-review process actually exists yet, so the email doesn't imply one.
+- **The "one factual detail from their CV" in the approve email is a
+  placeholder** (`[one specific, factual detail from their CV — replace
+  before sending]`) that Arjun fills in before sending, rather than an
+  automated extraction — the spec didn't define how that detail should be
+  chosen, and guessing risked pulling in rubric-flavored language the
+  guardrails explicitly forbid in candidate-facing emails.
+- **PDF text extraction has a repair step** for a real quirk seen in
+  several test CVs, where certain docx→pdf conversions make `pdf-parse`
+  emit one character per line. See the comment in
+  [`lib/parse-cv.ts`](lib/parse-cv.ts) for how it's detected and fixed.
+
+## Known limitations
+
+- No authentication — anyone with the URL can act as Arjun. Fine for this
+  assignment; the schema was deliberately kept RLS-ready (clean FKs, no
+  denormalized PII) if auth gets added later.
+- `RESEND_FROM_EMAIL=onboarding@resend.dev` can only send to your own
+  Resend account's email address, not arbitrary candidates, until a real
+  domain is verified.
+- Local dev and the deployed app currently point at the same Supabase
+  project, so testing locally affects the same data you'd see live.
