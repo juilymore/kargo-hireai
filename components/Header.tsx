@@ -1,14 +1,5 @@
 import Link from "next/link";
-import {
-  LayoutDashboard,
-  SlidersHorizontal,
-  Plus,
-  CheckCircle2,
-  XCircle,
-  BookOpen,
-  ClipboardList,
-  Mail,
-} from "lucide-react";
+import { LayoutDashboard, SlidersHorizontal, Plus, Workflow, BookOpen, ClipboardList, Mail } from "lucide-react";
 import type { CandidateStatus } from "@/lib/types";
 import HeaderDropdown from "./HeaderDropdown";
 import GlobalSearch from "./GlobalSearch";
@@ -19,7 +10,7 @@ const NAV_LINK =
 export default function Header({ counts }: { counts: Record<CandidateStatus, number> }) {
   return (
     <header className="border-b border-neutral-800 bg-neutral-900 sticky top-0 z-10">
-      <div className="mx-auto w-full max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1600px] px-6 py-3 flex items-center justify-between gap-6">
         <div className="flex items-center gap-6 min-w-0">
           <Link
             href="/"
@@ -32,26 +23,15 @@ export default function Header({ counts }: { counts: Record<CandidateStatus, num
               <LayoutDashboard className="w-4 h-4" />
               Dashboard
             </Link>
-            <Link href="/queue" className={`${NAV_LINK} gap-2`}>
-              Queue
-              <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-neutral-800 text-xs text-neutral-300">
-                {counts.NEW}
-              </span>
-            </Link>
             <HeaderDropdown
-              label="Advancing"
-              icon={<CheckCircle2 className="w-4 h-4" />}
+              label="Pipeline"
+              icon={<Workflow className="w-4 h-4" />}
               items={[
+                { href: "/queue", label: "Queue", count: counts.NEW },
                 { href: "/approved", label: "Approved", count: counts.APPROVED },
-                { href: "/hired", label: "Hired", count: counts.HIRED },
-              ]}
-            />
-            <HeaderDropdown
-              label="Declined"
-              icon={<XCircle className="w-4 h-4" />}
-              items={[
+                { href: "/hold", label: "On Hold", count: counts.HOLD },
                 { href: "/rejected", label: "Rejected", count: counts.REJECTED },
-                { href: "/hold", label: "Hold", count: counts.HOLD },
+                { href: "/hired", label: "Hired", count: counts.HIRED },
               ]}
             />
             <Link href="/rubrics" className={NAV_LINK}>

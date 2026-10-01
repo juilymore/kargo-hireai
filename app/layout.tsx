@@ -46,7 +46,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         ) : (
           <>
             <Header counts={counts} />
-            <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6">{children}</main>
+            <main className="flex-1 mx-auto w-full max-w-[1600px] px-6 py-6">{children}</main>
           </>
         )}
       </body>
