@@ -47,12 +47,12 @@ export default function HelpPage() {
             <Code>On Hold</Code> for a later look. Nothing is sent automatically.
           </li>
         </ul>
-        Every decision is timestamped and recorded — see <Code>More → Activity Log</Code>.
+        Every decision is timestamped and recorded — see <Code>Resources → Activity Log</Code>.
       </Step>
 
       <Step icon={Mail} title="4. Emails">
         Rejection (and other) emails sent from the app are logged under{" "}
-        <Code>More → Email History</Code> — useful if a candidate asks "did you get my CV" or
+        <Code>Resources → Email Log</Code> — useful if a candidate asks "did you get my CV" or
         disputes being contacted.
       </Step>
 
@@ -84,7 +84,7 @@ export default function HelpPage() {
       <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-sm text-neutral-400">
         <p className="font-medium text-neutral-200 mb-1">Stuck or something looks wrong?</p>
         <p>
-          Check <Code>More → Activity Log</Code> to see exactly what decisions were made and when.
+          Check <Code>Resources → Activity Log</Code> to see exactly what decisions were made and when.
           If a score looks off, open the candidate and read the full AI reasoning before overriding
           it — the rubric is deliberately cautious and routes uncertain cases to Hold rather than
           auto-approving or auto-rejecting them.
