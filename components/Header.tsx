@@ -10,7 +10,7 @@ const NAV_LINK =
 export default function Header({ counts }: { counts: Record<CandidateStatus, number> }) {
   return (
     <header className="border-b border-neutral-800 bg-neutral-900 sticky top-0 z-10">
-      <div className="mx-auto w-full max-w-[1600px] px-6 py-3 flex items-center justify-between gap-6">
+      <div className="mx-auto w-full max-w-7xl px-6 py-3 flex items-center justify-between gap-6">
         <div className="flex items-center gap-6 min-w-0">
           <Link
             href="/"

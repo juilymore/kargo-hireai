@@ -24,7 +24,7 @@ export default function SearchableList({
     : items;
 
   return (
-    <div className="max-w-3xl space-y-3">
+    <div className="space-y-3">
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
         <input
