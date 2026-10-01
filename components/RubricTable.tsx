@@ -1,12 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Save, Briefcase, HeartHandshake } from "lucide-react";
 import type { RubricCriterion } from "@/lib/rubric-weights";
 
 const JD_TOTAL = 40;
 const ARJUN_TOTAL = 60;
 
+function isDirty(current: RubricCriterion[], initial: RubricCriterion[]): boolean {
+  const byId = new Map(initial.map((c) => [c.id, c]));
+  return current.some((c) => {
+    const orig = byId.get(c.id);
+    return !orig || orig.points !== c.points || orig.description !== c.description;
+  });
+}
+
 export default function RubricTable({ initialCriteria }: { initialCriteria: RubricCriterion[] }) {
+  const [baseline, setBaseline] = useState(initialCriteria);
   const [criteria, setCriteria] = useState(initialCriteria);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +32,15 @@ export default function RubricTable({ initialCriteria }: { initialCriteria: Rubr
   );
   const jdValid = Math.abs(jdSum - JD_TOTAL) < 0.01;
   const arjunValid = Math.abs(arjunSum - ARJUN_TOTAL) < 0.01;
+  const dirty = isDirty(criteria, baseline);
 
   function updatePoints(id: string, points: number) {
+    setSavedAt(null);
     setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, points } : c)));
   }
 
   function updateDescription(id: string, description: string) {
+    setSavedAt(null);
     setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, description } : c)));
   }
 
@@ -52,13 +65,54 @@ export default function RubricTable({ initialCriteria }: { initialCriteria: Rubr
       return;
     }
     setCriteria(json.criteria);
+    setBaseline(json.criteria);
     setSavedAt(Date.now());
   }
 
   return (
     <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 flex-1 space-y-2">
+          <p className="text-sm text-neutral-300">
+            This rubric scores every candidate through two lenses:
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2">
+              <Briefcase className="w-4 h-4 text-blue-300 mt-0.5 shrink-0" />
+              <p className="text-sm text-neutral-400">
+                <span className="font-medium text-neutral-200">JD Fit</span> — hard skills &amp;
+                experience: years, project depth, domain match. <span className="text-neutral-500">40 pts</span>
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <HeartHandshake className="w-4 h-4 text-amber-300 mt-0.5 shrink-0" />
+              <p className="text-sm text-neutral-400">
+                <span className="font-medium text-neutral-200">Arjun&apos;s Pattern</span> — judgment
+                &amp; behavioral fit: ownership, resourcefulness, honesty about failure.{" "}
+                <span className="text-neutral-500">60 pts</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="shrink-0 text-right space-y-1">
+          <button
+            onClick={handleSave}
+            disabled={saving || !dirty}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-semibold shadow-md shadow-indigo-900/40 hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? "Saving…" : "Save weights"}
+          </button>
+          {savedAt && <p className="text-xs text-green-400">Saved — new scores will use this.</p>}
+          {!dirty && !savedAt && <p className="text-xs text-neutral-600">No changes yet</p>}
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
+
       <RubricSection
         title="JD Fit"
+        icon={Briefcase}
         rows={jdRows}
         sum={jdSum}
         total={JD_TOTAL}
@@ -68,6 +122,7 @@ export default function RubricTable({ initialCriteria }: { initialCriteria: Rubr
       />
       <RubricSection
         title="Arjun's Instinct Pattern"
+        icon={HeartHandshake}
         rows={arjunRows}
         sum={arjunSum}
         total={ARJUN_TOTAL}
@@ -76,24 +131,13 @@ export default function RubricTable({ initialCriteria }: { initialCriteria: Rubr
         onDescriptionChange={updateDescription}
         note="B9 is a deduction bucket (negative points) and isn't part of this total."
       />
-
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-semibold shadow-md shadow-indigo-900/40 hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
-        >
-          {saving ? "Saving…" : "Save weights"}
-        </button>
-        {savedAt && <span className="text-sm text-green-400">Saved — new scores will use this.</span>}
-      </div>
     </div>
   );
 }
 
 function RubricSection({
   title,
+  icon: Icon,
   rows,
   sum,
   total,
@@ -103,6 +147,7 @@ function RubricSection({
   onDescriptionChange,
 }: {
   title: string;
+  icon: typeof Briefcase;
   rows: RubricCriterion[];
   sum: number;
   total: number;
@@ -114,7 +159,10 @@ function RubricSection({
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-neutral-100">{title}</h2>
+        <h2 className="font-semibold text-neutral-100 flex items-center gap-2">
+          <Icon className="w-4 h-4 text-neutral-400" />
+          {title}
+        </h2>
         <span
           className={`text-sm font-medium px-2 py-0.5 rounded-full ${
             valid
@@ -128,16 +176,19 @@ function RubricSection({
       {note && <p className="text-xs text-neutral-500 mb-3">{note}</p>}
       <div className="space-y-3">
         {rows.map((c) => (
-          <div key={c.id} className="grid grid-cols-[3rem_10rem_1fr] gap-3 items-start">
-            <div className="text-sm font-mono text-neutral-400 pt-1.5">{c.code}</div>
-            <div>
-              <p className="text-sm font-medium text-neutral-200">{c.label}</p>
-              <input
-                type="number"
-                value={c.points}
-                onChange={(e) => onPointsChange(c.id, Number(e.target.value))}
-                className="mt-1 w-24 rounded border border-neutral-700 bg-neutral-800 text-neutral-100 px-2 py-1 text-sm"
-              />
+          <div key={c.id} className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-xs font-mono text-neutral-500 shrink-0">{c.code}</span>
+              <span className="text-sm font-medium text-neutral-200 flex-1">{c.label}</span>
+              <label className="flex items-center gap-1.5 shrink-0">
+                <span className="text-xs text-neutral-500">pts</span>
+                <input
+                  type="number"
+                  value={c.points}
+                  onChange={(e) => onPointsChange(c.id, Number(e.target.value))}
+                  className="w-16 rounded border border-neutral-700 bg-neutral-800 text-neutral-100 px-2 py-1 text-sm text-center"
+                />
+              </label>
             </div>
             <textarea
               value={c.description}

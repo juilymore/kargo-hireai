@@ -108,74 +108,83 @@ export default function UploadForm() {
     }
   }
 
-  async function submitAll() {
-    setSubmitting(true);
-    for (let i = 0; i < queue.length; i++) {
-      const item = queue[i];
-      if (item.status === "done") continue;
-      try {
-        updateStatus(i, "uploading");
+  async function processItem(i: number) {
+    const item = queue[i];
+    if (item.status === "done") return;
+    try {
+      updateStatus(i, "uploading");
 
-        let uploadRes: Response;
-        if (item.source.type === "file") {
-          const formData = new FormData();
-          formData.append("file", item.source.file);
-          formData.append("role_requested", item.role);
-          uploadRes = await fetch("/api/upload-cv", { method: "POST", body: formData });
-        } else {
-          uploadRes = await fetch("/api/upload-cv-from-link", {
+      let uploadRes: Response;
+      if (item.source.type === "file") {
+        const formData = new FormData();
+        formData.append("file", item.source.file);
+        formData.append("role_requested", item.role);
+        uploadRes = await fetch("/api/upload-cv", { method: "POST", body: formData });
+      } else {
+        uploadRes = await fetch("/api/upload-cv-from-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ drive_url: item.source.url, role_requested: item.role }),
+        });
+      }
+
+      const uploadJson = await parseJsonResponse(uploadRes);
+      if (!uploadRes.ok) {
+        updateStatus(i, "error", uploadJson.error ?? "Upload failed");
+        return;
+      }
+      const candidate = uploadJson.candidate;
+      if (candidate.extraction_error) {
+        updateStatus(i, "error", `Parsing failed: ${candidate.extraction_error}`);
+        return;
+      }
+
+      const rolesToScore: RoleScored[] =
+        item.role === "BOTH" ? ["PM", "SPM"] : [item.role as RoleScored];
+
+      updateStatus(i, "scoring");
+      // PM and SPM scoring are fully independent (guardrail #7 — never
+      // merged), so for a "Both" candidate there's no reason to wait for
+      // one before starting the other. Running them concurrently roughly
+      // halves wall-clock time for the default case without changing
+      // what either call does.
+      let scoringFailed = false;
+      const scoreResults = await Promise.all(
+        rolesToScore.map(async (role) => {
+          const scoreRes = await fetch("/api/score-candidate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ drive_url: item.source.url, role_requested: item.role }),
+            body: JSON.stringify({ candidate_id: candidate.id, role_scored: role }),
           });
+          const scoreJson = await parseJsonResponse(scoreRes);
+          return { role, scoreRes, scoreJson };
+        })
+      );
+      for (const { role, scoreRes, scoreJson } of scoreResults) {
+        if (!scoreRes.ok) {
+          // Don't fail the whole item — a BOTH candidate should still get
+          // whichever role succeeded. But remember the failure so it
+          // isn't overwritten with "done" below once the loop finishes.
+          updateStatus(i, "error", scoreJson.error ?? `Scoring failed for ${role}`);
+          scoringFailed = true;
         }
-
-        const uploadJson = await parseJsonResponse(uploadRes);
-        if (!uploadRes.ok) {
-          updateStatus(i, "error", uploadJson.error ?? "Upload failed");
-          continue;
-        }
-        const candidate = uploadJson.candidate;
-        if (candidate.extraction_error) {
-          updateStatus(i, "error", `Parsing failed: ${candidate.extraction_error}`);
-          continue;
-        }
-
-        const rolesToScore: RoleScored[] =
-          item.role === "BOTH" ? ["PM", "SPM"] : [item.role as RoleScored];
-
-        updateStatus(i, "scoring");
-        // PM and SPM scoring are fully independent (guardrail #7 — never
-        // merged), so for a "Both" candidate there's no reason to wait for
-        // one before starting the other. Running them concurrently roughly
-        // halves wall-clock time for the default case without changing
-        // what either call does.
-        let scoringFailed = false;
-        const scoreResults = await Promise.all(
-          rolesToScore.map(async (role) => {
-            const scoreRes = await fetch("/api/score-candidate", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ candidate_id: candidate.id, role_scored: role }),
-            });
-            const scoreJson = await parseJsonResponse(scoreRes);
-            return { role, scoreRes, scoreJson };
-          })
-        );
-        for (const { role, scoreRes, scoreJson } of scoreResults) {
-          if (!scoreRes.ok) {
-            // Don't fail the whole item — a BOTH candidate should still get
-            // whichever role succeeded. But remember the failure so it
-            // isn't overwritten with "done" below once the loop finishes.
-            updateStatus(i, "error", scoreJson.error ?? `Scoring failed for ${role}`);
-            scoringFailed = true;
-          }
-        }
-        if (!scoringFailed) updateStatus(i, "done");
-      } catch (err) {
-        updateStatus(i, "error", err instanceof Error ? err.message : "Unknown error");
       }
+      if (!scoringFailed) updateStatus(i, "done");
+    } catch (err) {
+      updateStatus(i, "error", err instanceof Error ? err.message : "Unknown error");
     }
+  }
+
+  async function submitAll() {
+    setSubmitting(true);
+    // Different files are completely independent of each other, so there's
+    // no reason to finish uploading+scoring one before starting the next —
+    // that was adding up to N-times the real wait for a batch of N resumes,
+    // the single biggest remaining chunk of "non-Gemini" time in the whole
+    // flow. Each item's own status/progress is already keyed by index, so
+    // this is purely a scheduling change, nothing about what happens to any
+    // one file is different.
+    await Promise.all(queue.map((_, i) => processItem(i)));
     setSubmitting(false);
   }
 
