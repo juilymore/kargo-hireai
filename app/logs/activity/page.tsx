@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ClipboardList, ArrowRight, Check, X, Pause } from "lucide-react";
 import { getActivityLog } from "@/lib/queries";
 import { TAB_FOR_STATUS } from "@/lib/status-tabs";
+import { REJECT_REASON_LABEL } from "@/lib/types";
 
 const ACTION_STYLE: Record<string, { badge: string; icon: typeof Check }> = {
   APPROVE: { badge: "bg-green-500/10 text-green-300 border border-green-800/40", icon: Check },
@@ -60,6 +61,11 @@ export default async function ActivityLogPage() {
                     </span>
                   </td>
                   <td className="py-2 pr-3 max-w-xs truncate text-neutral-300" title={row.comment}>
+                    {row.reason && (
+                      <span className="mr-1.5 px-1.5 py-0.5 rounded bg-neutral-800 text-xs text-neutral-300 whitespace-nowrap">
+                        {REJECT_REASON_LABEL[row.reason]}
+                      </span>
+                    )}
                     {row.comment}
                   </td>
                   <td className="py-2 pr-3 text-neutral-500">

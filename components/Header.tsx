@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LayoutDashboard, SlidersHorizontal, Plus } from "lucide-react";
 import type { CandidateStatus } from "@/lib/types";
 import HeaderMoreMenu from "./HeaderMoreMenu";
+import GlobalSearch from "./GlobalSearch";
 
 const STATUS_TABS: { href: string; label: string; status: CandidateStatus }[] = [
   { href: "/queue", label: "Queue", status: "NEW" },
@@ -49,13 +50,16 @@ export default function Header({ counts }: { counts: Record<CandidateStatus, num
             <HeaderMoreMenu />
           </nav>
         </div>
-        <Link
-          href="/upload"
-          className="px-3 py-1.5 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
-        >
-          <Plus className="w-4 h-4" />
-          Add CVs
-        </Link>
+        <div className="flex items-center gap-3">
+          <GlobalSearch />
+          <Link
+            href="/upload"
+            className="px-3 py-1.5 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            Add CVs
+          </Link>
+        </div>
       </div>
     </header>
   );
