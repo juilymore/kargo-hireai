@@ -60,10 +60,25 @@ export async function DELETE(
 ) {
   const { candidateId } = await params;
   const supabase = supabaseAdmin();
+
+  const { data: candidate } = await supabase
+    .from("candidates")
+    .select("resume_file_path")
+    .eq("id", candidateId)
+    .single();
+
   const { error } = await supabase.from("candidates").delete().eq("id", candidateId);
 
   if (error) {
     return NextResponse.json({ error: `Failed to delete candidate: ${error.message}` }, { status: 500 });
   }
+
+  // Direct file uploads store the original PDF/DOCX in Storage; Drive-link
+  // uploads don't (resume_file_path is null), so there's nothing to clean
+  // up there. Best-effort — the candidate row is already gone either way.
+  if (candidate?.resume_file_path) {
+    await supabase.storage.from("resumes").remove([candidate.resume_file_path]);
+  }
+
   return NextResponse.json({ ok: true });
 }
