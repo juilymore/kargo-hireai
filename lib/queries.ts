@@ -1,8 +1,10 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase/server";
 import type {
+  Candidate,
   CandidateStatus,
   CandidateWithDetails,
+  RoleScored,
   ScoringResult,
 } from "./types";
 
@@ -28,20 +30,11 @@ function latestPerRole(results: ScoringResult[]): ScoringResult[] {
   return Array.from(byRole.values()).map(withFactualDetail);
 }
 
-export async function getCandidatesByStatus(
-  status: CandidateStatus
-): Promise<CandidateWithDetails[]> {
-  const supabase = supabaseAdmin();
-
-  const { data: candidates, error } = await supabase
-    .from("candidates")
-    .select("*")
-    .eq("status", status)
-    .order("date_added", { ascending: false });
-
-  if (error || !candidates) return [];
+// Shared join logic: given raw candidate rows, attach their scoring
+// results, actions, emails, interview and hire records.
+async function attachDetails(candidates: Candidate[]): Promise<CandidateWithDetails[]> {
   if (candidates.length === 0) return [];
-
+  const supabase = supabaseAdmin();
   const ids = candidates.map((c) => c.id);
 
   const [scoringRes, actionsRes, emailsRes, interviewsRes, hiresRes] = await Promise.all([
@@ -78,6 +71,33 @@ export async function getCandidatesByStatus(
   }));
 }
 
+export async function getCandidatesByStatus(
+  status: CandidateStatus
+): Promise<CandidateWithDetails[]> {
+  const supabase = supabaseAdmin();
+  const { data: candidates, error } = await supabase
+    .from("candidates")
+    .select("*")
+    .eq("status", status)
+    .order("date_added", { ascending: false });
+
+  if (error || !candidates) return [];
+  return attachDetails(candidates);
+}
+
+export async function getCandidatesByIds(ids: string[]): Promise<CandidateWithDetails[]> {
+  if (ids.length === 0) return [];
+  const supabase = supabaseAdmin();
+  const { data: candidates, error } = await supabase
+    .from("candidates")
+    .select("*")
+    .in("id", ids)
+    .order("date_added", { ascending: false });
+
+  if (error || !candidates) return [];
+  return attachDetails(candidates);
+}
+
 export async function getStatusCounts(): Promise<Record<CandidateStatus, number>> {
   const supabase = supabaseAdmin();
   const { data } = await supabase.from("candidates").select("status");
@@ -105,33 +125,115 @@ export async function getCandidateWithDetails(
     .single();
 
   if (error || !candidate) return null;
+  const [withDetails] = await attachDetails([candidate]);
+  return withDetails;
+}
 
-  const [scoringRes, actionsRes, emailsRes, interviewRes, hireRes] = await Promise.all([
-    supabase
-      .from("scoring_results")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("actions_log")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("emails_log")
-      .select("*")
-      .eq("candidate_id", candidateId)
-      .order("created_at", { ascending: false }),
-    supabase.from("interviews").select("*").eq("candidate_id", candidateId).maybeSingle(),
-    supabase.from("hires").select("*").eq("candidate_id", candidateId).maybeSingle(),
-  ]);
+// ── DASHBOARD ────────────────────────────────────────────────────────────
 
-  return {
-    ...candidate,
-    scoring_results: latestPerRole((scoringRes.data as ScoringResult[]) ?? []),
-    actions_log: actionsRes.data ?? [],
-    emails_log: emailsRes.data ?? [],
-    interview: interviewRes.data ?? null,
-    hire: hireRes.data ?? null,
+export interface DashboardFilters {
+  from?: string; // ISO date, inclusive
+  to?: string; // ISO date, inclusive
+  role: RoleScored | "BOTH";
+}
+
+export interface DashboardData {
+  counts: {
+    queue: number;
+    approved: number;
+    interviewScheduled: number;
+    hired: number;
+    rejected: number;
+    hold: number;
+    totalChecked: number;
   };
+  topQueue: CandidateWithDetails[];
+  topInterviewScheduled: CandidateWithDetails[];
+}
+
+function bestScoreFor(candidate: CandidateWithDetails, role: RoleScored | "BOTH"): number {
+  const results = candidate.scoring_results.filter((r) => r.total_score != null);
+  if (results.length === 0) return -1;
+  if (role !== "BOTH") {
+    return results.find((r) => r.role_scored === role)?.total_score ?? -1;
+  }
+  return Math.max(...results.map((r) => r.total_score as number));
+}
+
+export async function getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
+  const supabase = supabaseAdmin();
+
+  // Narrow to candidates scored against the selected role, when filtered.
+  let roleFilteredIds: Set<string> | null = null;
+  if (filters.role !== "BOTH") {
+    const { data } = await supabase
+      .from("scoring_results")
+      .select("candidate_id")
+      .eq("role_scored", filters.role);
+    roleFilteredIds = new Set((data ?? []).map((r) => r.candidate_id));
+    if (roleFilteredIds.size === 0) {
+      return {
+        counts: {
+          queue: 0,
+          approved: 0,
+          interviewScheduled: 0,
+          hired: 0,
+          rejected: 0,
+          hold: 0,
+          totalChecked: 0,
+        },
+        topQueue: [],
+        topInterviewScheduled: [],
+      };
+    }
+  }
+
+  let query = supabase.from("candidates").select("*");
+  if (filters.from) query = query.gte("date_added", filters.from);
+  if (filters.to) query = query.lte("date_added", `${filters.to}T23:59:59.999Z`);
+
+  const { data: rawCandidates, error } = await query;
+  if (error || !rawCandidates) {
+    return {
+      counts: { queue: 0, approved: 0, interviewScheduled: 0, hired: 0, rejected: 0, hold: 0, totalChecked: 0 },
+      topQueue: [],
+      topInterviewScheduled: [],
+    };
+  }
+
+  const filtered = roleFilteredIds
+    ? rawCandidates.filter((c) => roleFilteredIds!.has(c.id))
+    : rawCandidates;
+
+  const withDetails = await attachDetails(filtered);
+
+  const queueCandidates = withDetails.filter((c) => c.status === "NEW");
+  const approvedCandidates = withDetails.filter((c) => c.status === "APPROVED");
+  const interviewScheduledCandidates = approvedCandidates.filter(
+    (c) => c.interview?.interview_status === "SCHEDULED"
+  );
+
+  const counts = {
+    queue: queueCandidates.length,
+    approved: approvedCandidates.length,
+    interviewScheduled: interviewScheduledCandidates.length,
+    hired: withDetails.filter((c) => c.status === "HIRED").length,
+    rejected: withDetails.filter((c) => c.status === "REJECTED").length,
+    hold: withDetails.filter((c) => c.status === "HOLD").length,
+    totalChecked: withDetails.length,
+  };
+
+  const topQueue = [...queueCandidates]
+    .sort((a, b) => bestScoreFor(b, filters.role) - bestScoreFor(a, filters.role))
+    .slice(0, 3);
+
+  const topInterviewScheduled = [...interviewScheduledCandidates]
+    .sort(
+      (a, b) =>
+        new Date(b.interview?.updated_at ?? 0).getTime() -
+        new Date(a.interview?.updated_at ?? 0).getTime()
+    )
+    .slice(0, 3);
+
+  return { counts, topQueue, topInterviewScheduled };
 }

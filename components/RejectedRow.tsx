@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CandidateWithDetails } from "@/lib/types";
 import EmailPreviewModal from "./EmailPreviewModal";
 import ScoringDetail from "./ScoringDetail";
+import ScoreGlance from "./ScoreGlance";
 
 export default function RejectedRow({ candidate }: { candidate: CandidateWithDetails }) {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
       <tr className="border-b border-neutral-800">
         <td className="py-2 pr-3 text-xs text-neutral-500">#{candidate.srno}</td>
         <td className="py-2 pr-3 font-medium text-neutral-100">{candidate.name || "Unnamed"}</td>
+        <td className="py-2 pr-3">
+          <ScoreGlance results={candidate.scoring_results} />
+        </td>
         <td className="py-2 pr-3">
           {candidate.resume_public_url && (
             <a href={candidate.resume_public_url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
@@ -62,7 +66,7 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
       </tr>
       {expanded && (
         <tr className="animate-fade-in">
-          <td colSpan={7} className="pb-3">
+          <td colSpan={8} className="pb-3">
             <ScoringDetail results={candidate.scoring_results} />
           </td>
         </tr>

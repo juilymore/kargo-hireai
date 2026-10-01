@@ -21,6 +21,7 @@ export default async function RejectedPage() {
             <tr className="border-b border-neutral-800 text-left text-xs text-neutral-500">
               <th className="py-2 pr-3 font-medium">Sr</th>
               <th className="py-2 pr-3 font-medium">Name</th>
+              <th className="py-2 pr-3 font-medium">Score</th>
               <th className="py-2 pr-3 font-medium">Resume</th>
               <th className="py-2 pr-3 font-medium">Added</th>
               <th className="py-2 pr-3 font-medium">Email</th>

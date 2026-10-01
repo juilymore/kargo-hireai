@@ -4,13 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionType, CandidateWithDetails } from "@/lib/types";
 import ScoringDetail from "./ScoringDetail";
+import ScoreGlance from "./ScoreGlance";
 import EmailPreviewModal from "./EmailPreviewModal";
-
-const VERDICT_STYLES: Record<string, string> = {
-  APPROVE: "bg-green-500/10 text-green-300 border border-green-800/40",
-  REJECT: "bg-red-500/10 text-red-300 border border-red-800/40",
-  REVIEW: "bg-amber-500/10 text-amber-300 border border-amber-800/40",
-};
+import { VERDICT_STYLES } from "@/lib/score-colors";
 
 export default function CandidateCard({
   candidate,
@@ -97,13 +93,8 @@ export default function CandidateCard({
         )}
       </div>
 
-      <div className="mt-3 flex gap-4 text-sm text-neutral-300">
-        {candidate.scoring_results.map((r) => (
-          <span key={r.id}>
-            {r.role_scored}: <b className="text-neutral-100">{r.total_score ?? "—"}</b>/100
-            {r.tier ? ` (${r.tier})` : ""}
-          </span>
-        ))}
+      <div className="mt-3">
+        <ScoreGlance results={candidate.scoring_results} />
       </div>
 
       {primaryResult?.why_ranked_here && (

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CandidateWithDetails } from "@/lib/types";
 import ScoringDetail from "./ScoringDetail";
+import ScoreGlance from "./ScoreGlance";
 
 export default function HiredRow({ candidate }: { candidate: CandidateWithDetails }) {
   const [expanded, setExpanded] = useState(false);
@@ -12,6 +13,9 @@ export default function HiredRow({ candidate }: { candidate: CandidateWithDetail
       <tr className="border-b border-neutral-800 align-top">
         <td className="py-2 pr-3 text-xs text-neutral-500">#{candidate.srno}</td>
         <td className="py-2 pr-3 font-medium text-neutral-100">{candidate.name || "Unnamed"}</td>
+        <td className="py-2 pr-3">
+          <ScoreGlance results={candidate.scoring_results} />
+        </td>
         <td className="py-2 pr-3 text-neutral-300">{candidate.hire?.role_hired_for}</td>
         <td className="py-2 pr-3 text-neutral-500">
           {new Date(candidate.date_added).toLocaleDateString()}
@@ -27,7 +31,7 @@ export default function HiredRow({ candidate }: { candidate: CandidateWithDetail
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={6} className="pb-4 space-y-3">
+          <td colSpan={7} className="pb-4 space-y-3">
             <ScoringDetail results={candidate.scoring_results} />
             <div>
               <p className="text-xs font-medium text-neutral-500 mb-1">Actions log</p>

@@ -1,17 +1,5 @@
 import type { ScoringResult } from "@/lib/types";
-
-const TIER_STYLES: Record<string, string> = {
-  "STRONG SHORTLIST": "bg-green-500/15 text-green-300",
-  SHORTLIST: "bg-blue-500/15 text-blue-300",
-  HOLD: "bg-amber-500/15 text-amber-300",
-  "DECLINE-ELIGIBLE": "bg-red-500/15 text-red-300",
-};
-
-const VERDICT_STYLES: Record<string, string> = {
-  APPROVE: "bg-green-500/15 text-green-300",
-  REJECT: "bg-red-500/15 text-red-300",
-  REVIEW: "bg-amber-500/15 text-amber-300",
-};
+import { TIER_STYLES, VERDICT_STYLES, FALLBACK_STYLE } from "@/lib/score-colors";
 
 export default function ScoringDetail({ results }: { results: ScoringResult[] }) {
   if (results.length === 0) {
@@ -30,7 +18,7 @@ export default function ScoringDetail({ results }: { results: ScoringResult[] })
               </span>
             ) : (
               <span
-                className={`text-xs font-medium px-2 py-0.5 rounded-full ${TIER_STYLES[r.tier ?? ""] ?? "bg-neutral-800 text-neutral-400"}`}
+                className={`text-xs font-medium px-2 py-0.5 rounded-full ${TIER_STYLES[r.tier ?? ""] ?? FALLBACK_STYLE}`}
               >
                 {r.tier ?? "—"}
               </span>
@@ -50,7 +38,7 @@ export default function ScoringDetail({ results }: { results: ScoringResult[] })
                   Total <b className="text-neutral-100">{r.total_score}</b>/100
                 </span>
                 <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${VERDICT_STYLES[r.verdict ?? ""] ?? "bg-neutral-800 text-neutral-400"}`}
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${VERDICT_STYLES[r.verdict ?? ""] ?? FALLBACK_STYLE}`}
                 >
                   {r.verdict ?? "—"}
                 </span>

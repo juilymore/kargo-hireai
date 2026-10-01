@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CandidateWithDetails, InterviewStatus, RoleScored } from "@/lib/types";
 import ScoringDetail from "./ScoringDetail";
+import ScoreGlance from "./ScoreGlance";
 
 function defaultRoleHiredFor(candidate: CandidateWithDetails): RoleScored {
   if (candidate.role_recommended?.startsWith("SPM")) return "SPM";
@@ -83,6 +84,8 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
           </a>
         )}
       </div>
+
+      <ScoreGlance results={candidate.scoring_results} />
 
       {brief && <p className="text-sm text-neutral-300">{brief}</p>}
 

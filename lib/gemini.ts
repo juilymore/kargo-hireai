@@ -1,6 +1,7 @@
 import "server-only";
 import { GoogleGenAI, Type } from "@google/genai";
 import { loadRubric } from "./rubric";
+import { buildWeightOverrideBlock } from "./rubric-weights";
 import type { GeminiScoringResponse, RoleScored } from "./types";
 
 const RESPONSE_SCHEMA = {
@@ -51,8 +52,9 @@ const RESPONSE_SCHEMA = {
 
 const REQUIRED_FIELDS = RESPONSE_SCHEMA.required;
 
-function buildSystemInstruction(roleScored: RoleScored): string {
+async function buildSystemInstruction(roleScored: RoleScored): Promise<string> {
   const rubric = loadRubric();
+  const weightOverride = await buildWeightOverrideBlock();
   return `You are the resume scorer defined in the Kargo resume scoring rubric below. \
 Act exactly as that rubric instructs: score only what is written, cite verbatim quotes, \
 tag every score [JD] or [ARJUN], run the Verification Layer and Bias Guardrails, and \
@@ -79,7 +81,7 @@ kind (e.g. good: "the shipment tracker you built at Rohan Logistics"; bad: anyth
 
 === RUBRIC (verbatim, do not deviate) ===
 ${rubric}
-=== END RUBRIC ===`;
+=== END RUBRIC ===${weightOverride}`;
 }
 
 export interface ScoreCvResult {
@@ -123,7 +125,7 @@ export async function scoreCv(
   const model = process.env.GEMINI_MODEL || "gemini-3.1-pro-preview";
 
   const ai = new GoogleGenAI({ apiKey });
-  const systemInstruction = buildSystemInstruction(roleScored);
+  const systemInstruction = await buildSystemInstruction(roleScored);
 
   const config = {
     systemInstruction,
