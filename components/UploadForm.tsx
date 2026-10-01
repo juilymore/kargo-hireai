@@ -198,7 +198,10 @@ export default function UploadForm() {
   // at once for 4 "Both" files) was slow enough under load to blow past the
   // scoring route's own timeout and come back as a 504. Capping how many
   // files are in flight at once keeps the parallelism without the pileup.
-  const MAX_CONCURRENT_FILES = 2;
+  // (score-candidate's maxDuration is 180s, so 3 files — up to 6 concurrent
+  // Gemini calls for "Both" — still has real headroom versus the ~45s a
+  // call takes in isolation.)
+  const MAX_CONCURRENT_FILES = 3;
 
   async function submitAll() {
     setSubmitting(true);
