@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mail, ArrowRight } from "lucide-react";
 import { getEmailHistory } from "@/lib/queries";
 import { TAB_FOR_STATUS } from "@/lib/status-tabs";
+import { formatDateTime } from "@/lib/format-date";
 
 const STATUS_STYLE: Record<string, string> = {
   SENT: "bg-green-500/10 text-green-300 border border-green-800/40",
@@ -59,7 +60,7 @@ export default async function EmailHistoryPage() {
                   </span>
                 </td>
                 <td className="py-2 pr-3 text-neutral-500">
-                  {row.sent_at ? new Date(row.sent_at).toLocaleString() : "—"}
+                  {row.sent_at ? formatDateTime(row.sent_at) : "—"}
                 </td>
                 <td className="py-2 pr-3">
                   <Link

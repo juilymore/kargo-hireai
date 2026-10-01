@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CandidateWithDetails } from "@/lib/types";
 import { REJECT_REASON_LABEL } from "@/lib/types";
+import { formatDate } from "@/lib/format-date";
 import EmailPreviewModal from "./EmailPreviewModal";
 import ScoringDetail from "./ScoringDetail";
 import ScoreGlance from "./ScoreGlance";
@@ -36,7 +37,7 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
           )}
         </td>
         <td className="py-2 pr-3 text-neutral-500">
-          {new Date(candidate.date_added).toLocaleDateString()}
+          {formatDate(candidate.date_added)}
         </td>
         <td className="py-2 pr-3">
           {emailSent ? (

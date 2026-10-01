@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, X, Pause, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import type { ActionType, CandidateWithDetails, RejectReason } from "@/lib/types";
 import { REJECT_REASON_LABEL } from "@/lib/types";
+import { formatDate } from "@/lib/format-date";
 import ScoringDetail from "./ScoringDetail";
 import ScoreGlance from "./ScoreGlance";
 import EmailPreviewModal from "./EmailPreviewModal";
@@ -81,7 +82,7 @@ export default function CandidateCard({
             ) : null}
           </div>
           <p className="text-xs text-neutral-500 mt-0.5">
-            Added {new Date(candidate.date_added).toLocaleDateString()} · Requested{" "}
+            Added {formatDate(candidate.date_added)} · Requested{" "}
             {candidate.role_requested}
             {candidate.role_recommended ? ` · Recommended ${candidate.role_recommended}` : ""}
           </p>

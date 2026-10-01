@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 import type { CandidateWithDetails } from "@/lib/types";
 import { TAB_FOR_STATUS } from "@/lib/status-tabs";
+import { formatDate } from "@/lib/format-date";
 import ScoreGlance from "./ScoreGlance";
 
 export default function DashboardCandidateRow({ candidate }: { candidate: CandidateWithDetails }) {
@@ -15,7 +16,7 @@ export default function DashboardCandidateRow({ candidate }: { candidate: Candid
           {candidate.name || "Unnamed candidate"}
         </p>
         <p className="text-xs text-neutral-500">
-          Added {new Date(candidate.date_added).toLocaleDateString()}
+          Added {formatDate(candidate.date_added)}
         </p>
       </div>
       <div className="flex-1 max-w-xs">

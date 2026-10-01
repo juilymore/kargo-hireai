@@ -3,6 +3,7 @@ import { ClipboardList, ArrowRight, Check, X, Pause } from "lucide-react";
 import { getActivityLog } from "@/lib/queries";
 import { TAB_FOR_STATUS } from "@/lib/status-tabs";
 import { REJECT_REASON_LABEL } from "@/lib/types";
+import { formatDateTime } from "@/lib/format-date";
 
 const ACTION_STYLE: Record<string, { badge: string; icon: typeof Check }> = {
   APPROVE: { badge: "bg-green-500/10 text-green-300 border border-green-800/40", icon: Check },
@@ -69,7 +70,7 @@ export default async function ActivityLogPage() {
                     {row.comment}
                   </td>
                   <td className="py-2 pr-3 text-neutral-500">
-                    {new Date(row.created_at).toLocaleString()}
+                    {formatDateTime(row.created_at)}
                   </td>
                   <td className="py-2 pr-3">
                     <Link

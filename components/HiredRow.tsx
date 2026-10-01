@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CandidateWithDetails } from "@/lib/types";
+import { formatDate } from "@/lib/format-date";
 import ScoringDetail from "./ScoringDetail";
 import ScoreGlance from "./ScoreGlance";
 
@@ -18,10 +19,10 @@ export default function HiredRow({ candidate }: { candidate: CandidateWithDetail
         </td>
         <td className="py-2 pr-3 text-neutral-300">{candidate.hire?.role_hired_for}</td>
         <td className="py-2 pr-3 text-neutral-500">
-          {new Date(candidate.date_added).toLocaleDateString()}
+          {formatDate(candidate.date_added)}
         </td>
         <td className="py-2 pr-3 text-neutral-500">
-          {candidate.hire ? new Date(candidate.hire.hired_at).toLocaleDateString() : "—"}
+          {candidate.hire ? formatDate(candidate.hire.hired_at) : "—"}
         </td>
         <td className="py-2 pr-3">
           <button onClick={() => setExpanded((e) => !e)} className="text-neutral-500 hover:text-neutral-200">
@@ -40,7 +41,7 @@ export default function HiredRow({ candidate }: { candidate: CandidateWithDetail
                   <li key={a.id} className="text-neutral-400">
                     <span className="font-medium text-neutral-200">{a.action}</span> — {a.comment}{" "}
                     <span className="text-xs text-neutral-500">
-                      ({new Date(a.created_at).toLocaleDateString()})
+                      ({formatDate(a.created_at)})
                     </span>
                   </li>
                 ))}

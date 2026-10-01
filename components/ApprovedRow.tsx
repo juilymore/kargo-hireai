@@ -13,6 +13,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import type { CandidateWithDetails, InterviewStatus, RoleScored } from "@/lib/types";
+import { formatDate } from "@/lib/format-date";
 import ScoringDetail from "./ScoringDetail";
 import ScoreGlance from "./ScoreGlance";
 
@@ -113,7 +114,7 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
             </span>
           </div>
           <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
-            Added {new Date(candidate.date_added).toLocaleDateString()} ·
+            Added {formatDate(candidate.date_added)} ·
             <Mail className="w-3 h-3" />
             {emailSent ? "Email sent" : "Email not sent"}
           </p>
