@@ -1,5 +1,5 @@
 import type { ScoringResult } from "@/lib/types";
-import { TIER_STYLES, VERDICT_STYLES, FALLBACK_STYLE } from "@/lib/score-colors";
+import { TIER_STYLES, VERDICT_STYLES, FALLBACK_STYLE, tierLabel } from "@/lib/score-colors";
 
 export default function ScoringDetail({ results }: { results: ScoringResult[] }) {
   if (results.length === 0) {
@@ -20,7 +20,7 @@ export default function ScoringDetail({ results }: { results: ScoringResult[] })
               <span
                 className={`text-xs font-medium px-2 py-0.5 rounded-full ${TIER_STYLES[r.tier ?? ""] ?? FALLBACK_STYLE}`}
               >
-                {r.tier ?? "—"}
+                {tierLabel(r.tier)}
               </span>
             )}
           </div>

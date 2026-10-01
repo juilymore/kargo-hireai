@@ -107,6 +107,21 @@ function validate(obj: unknown): obj is GeminiScoringResponse {
   return true;
 }
 
+// The rubric defines tiers with hard, deterministic thresholds (Part 7.1 —
+// TOTAL>=75 for STRONG SHORTLIST, 60-74 for SHORTLIST, etc.), but left
+// "verdict" as a free judgment call for the model. Combined with the
+// rubric's own "lean toward human review" philosophy (Part 7.5), that made
+// the model default to REVIEW almost everywhere, even for STRONG SHORTLIST
+// candidates — not useful as an at-a-glance signal. Deriving verdict from
+// the already-deterministic tier instead keeps it consistent and matches
+// what Arjun actually expects to see for a clearly strong or weak score.
+function deriveVerdictFromTier(tier: string): "APPROVE" | "REJECT" | "REVIEW" {
+  const normalized = tier.trim().toUpperCase();
+  if (normalized === "STRONG SHORTLIST" || normalized === "SHORTLIST") return "APPROVE";
+  if (normalized === "DECLINE-ELIGIBLE") return "REJECT";
+  return "REVIEW"; // HOLD, or anything unrecognized — never silently decide
+}
+
 function tryParseJson(text: string): unknown | null {
   const trimmed = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   try {
@@ -141,6 +156,7 @@ export async function scoreCv(
   let parsed = tryParseJson(firstText);
 
   if (parsed && validate(parsed)) {
+    parsed.verdict = deriveVerdictFromTier(parsed.tier);
     return { parsed, rawResponseText: firstText, needsManualReview: false };
   }
 
@@ -152,6 +168,7 @@ export async function scoreCv(
   parsed = tryParseJson(secondText);
 
   if (parsed && validate(parsed)) {
+    parsed.verdict = deriveVerdictFromTier(parsed.tier);
     return { parsed, rawResponseText: secondText, needsManualReview: false };
   }
 

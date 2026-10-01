@@ -1,5 +1,5 @@
 import type { ScoringResult } from "@/lib/types";
-import { TIER_DOT_COLOR, TIER_STYLES, FALLBACK_STYLE } from "@/lib/score-colors";
+import { TIER_DOT_COLOR, TIER_STYLES, FALLBACK_STYLE, tierLabel } from "@/lib/score-colors";
 
 // Compact, color-coded "glance" view of a candidate's score(s) — meant to
 // sit at the top of a card/row so the tier is readable without expanding
@@ -23,7 +23,7 @@ export default function ScoreGlance({ results }: { results: ScoringResult[] }) {
         <span className="text-sm font-semibold">
           {r.role_scored} — {r.total_score ?? "—"}/100
         </span>
-        {!r.needs_manual_review && r.tier && <span className="text-xs">{r.tier}</span>}
+        {!r.needs_manual_review && r.tier && <span className="text-xs">{tierLabel(r.tier)}</span>}
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default function ScoreGlance({ results }: { results: ScoringResult[] }) {
             {r.role_scored} {r.total_score ?? "—"}
           </span>
           {!r.needs_manual_review && r.tier && (
-            <span className="text-xs text-neutral-500">({r.tier})</span>
+            <span className="text-xs text-neutral-500">({tierLabel(r.tier)})</span>
           )}
         </div>
       ))}

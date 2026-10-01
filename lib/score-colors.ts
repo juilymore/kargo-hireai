@@ -17,6 +17,22 @@ export const VERDICT_STYLES: Record<string, string> = {
 
 export const FALLBACK_STYLE = "bg-neutral-800 text-neutral-400 border border-neutral-700";
 
+// Friendlier wording for display only — the rubric's own tier names
+// ("DECLINE-ELIGIBLE" etc.) stay exactly as the rubric defines them in the
+// database and in Gemini's prompt (guardrail #8: the rubric text itself is
+// never touched). This just relabels what Arjun reads on screen.
+export const TIER_DISPLAY_LABEL: Record<string, string> = {
+  "STRONG SHORTLIST": "Strong Match",
+  SHORTLIST: "Good Match",
+  HOLD: "Needs Review",
+  "DECLINE-ELIGIBLE": "Likely Decline",
+};
+
+export function tierLabel(tier: string | null | undefined): string {
+  if (!tier) return "—";
+  return TIER_DISPLAY_LABEL[tier] ?? tier;
+}
+
 // Solid (non-translucent) variant for the compact score dot/ring in
 // ScoreGlance, where a faint background wouldn't read well at small size.
 export const TIER_DOT_COLOR: Record<string, string> = {
