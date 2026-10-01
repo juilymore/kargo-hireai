@@ -4,11 +4,13 @@ import { scoreCv } from "@/lib/gemini";
 import type { RoleScored } from "@/lib/types";
 
 export const runtime = "nodejs";
-// Gemini scoring routinely takes 20-30s+ (more with the retry-on-bad-JSON
-// path); Vercel's default function timeout is much shorter than that and
-// kills the request mid-call, returning an empty body that shows up in the
-// client as "Unexpected end of JSON input". Give it real headroom.
-export const maxDuration = 60;
+// A single scoring call routinely takes 30s+ with gemini-3.1-pro-preview's
+// "thinking" overhead on this rubric's size, and the retry-on-bad-JSON path
+// (lib/gemini.ts) can mean two such calls back to back. 60s measured too
+// tight in practice — production calls were hitting Vercel's own gateway
+// timeout (FUNCTION_INVOCATION_TIMEOUT, HTTP 504) before finishing. Give it
+// real headroom.
+export const maxDuration = 180;
 
 const VALID_ROLES: RoleScored[] = ["PM", "SPM"];
 

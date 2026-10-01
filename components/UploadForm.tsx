@@ -192,16 +192,25 @@ export default function UploadForm() {
     }
   }
 
+  // Different files are independent, so there's no reason to finish one
+  // before starting the next — but a "Both" item alone makes 2 concurrent
+  // Gemini calls, and unlimited concurrency across a whole batch (8+ calls
+  // at once for 4 "Both" files) was slow enough under load to blow past the
+  // scoring route's own timeout and come back as a 504. Capping how many
+  // files are in flight at once keeps the parallelism without the pileup.
+  const MAX_CONCURRENT_FILES = 2;
+
   async function submitAll() {
     setSubmitting(true);
-    // Different files are completely independent of each other, so there's
-    // no reason to finish uploading+scoring one before starting the next —
-    // that was adding up to N-times the real wait for a batch of N resumes,
-    // the single biggest remaining chunk of "non-Gemini" time in the whole
-    // flow. Each item's own status/progress is already keyed by index, so
-    // this is purely a scheduling change, nothing about what happens to any
-    // one file is different.
-    await Promise.all(queue.map((_, i) => processItem(i)));
+    const indices = queue.map((_, i) => i);
+    let next = 0;
+    async function worker() {
+      while (next < indices.length) {
+        const i = indices[next++];
+        await processItem(i);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT_FILES, indices.length) }, worker));
     setSubmitting(false);
   }
 
