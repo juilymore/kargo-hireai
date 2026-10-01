@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import { getStatusCounts } from "@/lib/queries";
+import HeaderAsync from "@/components/HeaderAsync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,7 +22,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+const ZERO_COUNTS = { NEW: 0, APPROVED: 0, REJECTED: 0, HOLD: 0, HIRED: 0 };
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
   const missingEnvVars = [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
@@ -31,9 +34,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     "SCHEDULING_LINK",
   ].filter((key) => !process.env[key]);
 
-  const counts = missingEnvVars.includes("SUPABASE_URL") || missingEnvVars.includes("SUPABASE_SERVICE_ROLE_KEY")
-    ? null
-    : await getStatusCounts();
+  const configured =
+    !missingEnvVars.includes("SUPABASE_URL") && !missingEnvVars.includes("SUPABASE_SERVICE_ROLE_KEY");
 
   return (
     <html
@@ -41,11 +43,17 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
-        {counts === null ? (
+        {!configured ? (
           <SetupNotice missingEnvVars={missingEnvVars} />
         ) : (
           <>
-            <Header counts={counts} />
+            {/* Suspense lets the page below start fetching its own data
+                immediately instead of waiting on this counts query first —
+                the fallback reuses Header with zeroed counts, swapped for
+                the real counts moments later. */}
+            <Suspense fallback={<Header counts={ZERO_COUNTS} />}>
+              <HeaderAsync />
+            </Suspense>
             <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-6">{children}</main>
           </>
         )}
