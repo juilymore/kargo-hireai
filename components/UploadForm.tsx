@@ -145,18 +145,28 @@ export default function UploadForm() {
           item.role === "BOTH" ? ["PM", "SPM"] : [item.role as RoleScored];
 
         updateStatus(i, "scoring");
+        // PM and SPM scoring are fully independent (guardrail #7 — never
+        // merged), so for a "Both" candidate there's no reason to wait for
+        // one before starting the other. Running them concurrently roughly
+        // halves wall-clock time for the default case without changing
+        // what either call does.
         let scoringFailed = false;
-        for (const role of rolesToScore) {
-          const scoreRes = await fetch("/api/score-candidate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ candidate_id: candidate.id, role_scored: role }),
-          });
-          const scoreJson = await parseJsonResponse(scoreRes);
+        const scoreResults = await Promise.all(
+          rolesToScore.map(async (role) => {
+            const scoreRes = await fetch("/api/score-candidate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ candidate_id: candidate.id, role_scored: role }),
+            });
+            const scoreJson = await parseJsonResponse(scoreRes);
+            return { role, scoreRes, scoreJson };
+          })
+        );
+        for (const { role, scoreRes, scoreJson } of scoreResults) {
           if (!scoreRes.ok) {
-            // Don't break — a BOTH candidate should still get whichever role
-            // succeeds. But remember the failure so it isn't overwritten
-            // with "done" below once the loop finishes.
+            // Don't fail the whole item — a BOTH candidate should still get
+            // whichever role succeeded. But remember the failure so it
+            // isn't overwritten with "done" below once the loop finishes.
             updateStatus(i, "error", scoreJson.error ?? `Scoring failed for ${role}`);
             scoringFailed = true;
           }

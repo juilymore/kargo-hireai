@@ -129,6 +129,51 @@ export async function getCandidateWithDetails(
   return withDetails;
 }
 
+// ── EMAIL HISTORY ────────────────────────────────────────────────────────
+
+export interface EmailHistoryRow {
+  id: string;
+  candidate_id: string;
+  candidate_name: string | null;
+  candidate_status: CandidateStatus;
+  candidate_srno: number;
+  email_type: "APPROVE_INVITE" | "REJECT_NOTICE";
+  status: "DRAFTED" | "SENT" | "FAILED";
+  sent_at: string | null;
+  created_at: string;
+}
+
+export async function getEmailHistory(): Promise<EmailHistoryRow[]> {
+  const supabase = supabaseAdmin();
+  const { data: emails, error } = await supabase
+    .from("emails_log")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error || !emails || emails.length === 0) return [];
+
+  const candidateIds = [...new Set(emails.map((e) => e.candidate_id))];
+  const { data: candidates } = await supabase
+    .from("candidates")
+    .select("id, name, status, srno")
+    .in("id", candidateIds);
+  const byId = new Map((candidates ?? []).map((c) => [c.id, c]));
+
+  return emails.map((e) => {
+    const candidate = byId.get(e.candidate_id);
+    return {
+      id: e.id,
+      candidate_id: e.candidate_id,
+      candidate_name: candidate?.name ?? null,
+      candidate_status: (candidate?.status as CandidateStatus) ?? "NEW",
+      candidate_srno: candidate?.srno ?? 0,
+      email_type: e.email_type,
+      status: e.status,
+      sent_at: e.sent_at,
+      created_at: e.created_at,
+    };
+  });
+}
+
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 
 export interface DashboardFilters {

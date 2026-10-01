@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { getRubricCriteria, JD_TOTAL, ARJUN_TOTAL } from "@/lib/rubric-weights";
+import { getRubricCriteria, invalidateRubricCache, JD_TOTAL, ARJUN_TOTAL } from "@/lib/rubric-weights";
 
 export const runtime = "nodejs";
 
@@ -16,6 +16,10 @@ export async function GET() {
   }
 }
 
+// Note: on Vercel each invocation may land on a different warm instance, so
+// this in-process invalidation is best-effort — the cache's own 30s TTL
+// (see lib/rubric-weights.ts) is what guarantees an edit is never stale for
+// long, even on an instance this call didn't run on.
 interface UpdateItem {
   id: string;
   points: number;
@@ -82,6 +86,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    invalidateRubricCache();
     const criteria = await getRubricCriteria();
     return NextResponse.json({ criteria });
   } catch (err) {

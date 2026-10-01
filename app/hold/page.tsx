@@ -1,5 +1,6 @@
 import { getCandidatesByStatus } from "@/lib/queries";
 import CandidateCard from "@/components/CandidateCard";
+import SearchableList from "@/components/SearchableList";
 
 export default async function HoldPage() {
   const candidates = await getCandidatesByStatus("HOLD");
@@ -20,16 +21,21 @@ export default async function HoldPage() {
           <p className="font-medium text-neutral-200">No one on hold</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {candidates.map((c) => (
-            <CandidateCard
-              key={c.id}
-              candidate={c}
-              schedulingLink={schedulingLink}
-              defaultTestEmail={defaultTestEmail}
-            />
-          ))}
-        </div>
+        <SearchableList
+          placeholder="Search by candidate name…"
+          items={candidates.map((c) => ({
+            id: c.id,
+            name: c.name ?? "",
+            node: (
+              <CandidateCard
+                key={c.id}
+                candidate={c}
+                schedulingLink={schedulingLink}
+                defaultTestEmail={defaultTestEmail}
+              />
+            ),
+          }))}
+        />
       )}
     </div>
   );

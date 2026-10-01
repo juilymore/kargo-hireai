@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { LayoutDashboard, SlidersHorizontal, Plus } from "lucide-react";
 import type { CandidateStatus } from "@/lib/types";
+import HeaderMoreMenu from "./HeaderMoreMenu";
 
 const STATUS_TABS: { href: string; label: string; status: CandidateStatus }[] = [
-  { href: "/queue", label: "Queue (New)", status: "NEW" },
+  { href: "/queue", label: "Queue", status: "NEW" },
   { href: "/approved", label: "Approved", status: "APPROVED" },
   { href: "/rejected", label: "Rejected", status: "REJECTED" },
   { href: "/hold", label: "Hold", status: "HOLD" },
@@ -14,12 +16,15 @@ export default function Header({ counts }: { counts: Record<CandidateStatus, num
     <header className="border-b border-neutral-800 bg-neutral-900 sticky top-0 z-10">
       <div className="mx-auto w-full max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
-          <span className="font-semibold text-lg tracking-tight text-neutral-100">Hire AI</span>
+          <Link href="/" className="font-semibold text-lg tracking-tight text-neutral-100">
+            Kargo <span className="text-neutral-500 font-normal">-</span> Hire AI
+          </Link>
           <nav className="flex items-center gap-1">
             <Link
               href="/"
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+              className="px-3 py-1.5 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100 flex items-center gap-1.5"
             >
+              <LayoutDashboard className="w-4 h-4" />
               Dashboard
             </Link>
             {STATUS_TABS.map((tab) => (
@@ -36,17 +41,20 @@ export default function Header({ counts }: { counts: Record<CandidateStatus, num
             ))}
             <Link
               href="/rubrics"
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+              className="px-3 py-1.5 rounded-md text-sm font-medium text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100 flex items-center gap-1.5"
             >
+              <SlidersHorizontal className="w-4 h-4" />
               Rubrics
             </Link>
+            <HeaderMoreMenu />
           </nav>
         </div>
         <Link
           href="/upload"
-          className="px-3 py-1.5 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+          className="px-3 py-1.5 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
         >
-          + Add CVs
+          <Plus className="w-4 h-4" />
+          Add CVs
         </Link>
       </div>
     </header>

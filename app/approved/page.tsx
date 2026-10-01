@@ -1,5 +1,6 @@
 import { getCandidatesByStatus } from "@/lib/queries";
 import ApprovedRow from "@/components/ApprovedRow";
+import SearchableList from "@/components/SearchableList";
 
 export default async function ApprovedPage() {
   const candidates = await getCandidatesByStatus("APPROVED");
@@ -18,11 +19,14 @@ export default async function ApprovedPage() {
           <p className="font-medium text-neutral-200">No approved candidates yet</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {candidates.map((c) => (
-            <ApprovedRow key={c.id} candidate={c} />
-          ))}
-        </div>
+        <SearchableList
+          placeholder="Search by candidate name…"
+          items={candidates.map((c) => ({
+            id: c.id,
+            name: c.name ?? "",
+            node: <ApprovedRow key={c.id} candidate={c} />,
+          }))}
+        />
       )}
     </div>
   );

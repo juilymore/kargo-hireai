@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, X, Pause, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import type { ActionType, CandidateWithDetails } from "@/lib/types";
 import ScoringDetail from "./ScoringDetail";
 import ScoreGlance from "./ScoreGlance";
@@ -86,9 +87,10 @@ export default function CandidateCard({
             href={candidate.resume_public_url}
             target="_blank"
             rel="noreferrer"
-            className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-md bg-neutral-800 text-indigo-300 hover:bg-neutral-700 hover:text-indigo-200 transition-colors whitespace-nowrap"
+            className="shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md bg-neutral-800 text-indigo-300 hover:bg-neutral-700 hover:text-indigo-200 transition-colors whitespace-nowrap"
           >
-            View resume
+            <FileText className="w-3.5 h-3.5" />
+            Resume
           </a>
         )}
       </div>
@@ -103,9 +105,10 @@ export default function CandidateCard({
 
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="mt-2 text-xs font-medium px-2.5 py-1 rounded-md bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors"
+        className="mt-2 inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 transition-colors"
       >
-        {expanded ? "Hide details ▲" : "Show details ▼"}
+        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        {expanded ? "Hide details" : "Show details"}
       </button>
 
       {expanded && (
@@ -135,22 +138,25 @@ export default function CandidateCard({
             <button
               onClick={() => handleAction("APPROVE")}
               disabled={submitting !== null}
-              className="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm font-semibold shadow-md shadow-green-900/30 hover:bg-green-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-600 text-white text-sm font-semibold shadow-md shadow-green-900/30 hover:bg-green-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
             >
+              <Check className="w-4 h-4" />
               {submitting === "APPROVE" ? "…" : "Approve"}
             </button>
             <button
               onClick={() => handleAction("REJECT")}
               disabled={submitting !== null}
-              className="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold shadow-md shadow-red-900/30 hover:bg-red-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold shadow-md shadow-red-900/30 hover:bg-red-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
             >
+              <X className="w-4 h-4" />
               {submitting === "REJECT" ? "…" : "Reject"}
             </button>
             <button
               onClick={() => handleAction("HOLD")}
               disabled={submitting !== null}
-              className="px-3 py-1.5 rounded-md bg-amber-500 text-white text-sm font-semibold shadow-md shadow-amber-900/30 hover:bg-amber-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500 text-white text-sm font-semibold shadow-md shadow-amber-900/30 hover:bg-amber-400 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:hover:scale-100"
             >
+              <Pause className="w-4 h-4" />
               {submitting === "HOLD" ? "…" : "Hold"}
             </button>
           </div>

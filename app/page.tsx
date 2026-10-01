@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getDashboardData } from "@/lib/queries";
 import type { RoleScored } from "@/lib/types";
+import { defaultDashboardRange } from "@/lib/date-ranges";
 import DashboardFilters from "@/components/DashboardFilters";
 import DashboardCandidateRow from "@/components/DashboardCandidateRow";
 
@@ -22,7 +23,10 @@ export default async function DashboardPage({
   const role = (params.role === "PM" || params.role === "SPM" ? params.role : "BOTH") as
     | RoleScored
     | "BOTH";
-  const data = await getDashboardData({ role, from: params.from, to: params.to });
+  const defaultRange = defaultDashboardRange();
+  const from = params.from ?? defaultRange.from;
+  const to = params.to ?? defaultRange.to;
+  const data = await getDashboardData({ role, from, to });
 
   return (
     <div className="space-y-6">
@@ -34,7 +38,7 @@ export default async function DashboardPage({
       </div>
 
       <Suspense fallback={null}>
-        <DashboardFilters />
+        <DashboardFilters defaultFrom={defaultRange.from} defaultTo={defaultRange.to} />
       </Suspense>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">

@@ -1,5 +1,6 @@
 import { getCandidatesByStatus } from "@/lib/queries";
 import RejectedRow from "@/components/RejectedRow";
+import SearchableTable from "@/components/SearchableTable";
 
 export default async function RejectedPage() {
   const candidates = await getCandidatesByStatus("REJECTED");
@@ -16,8 +17,9 @@ export default async function RejectedPage() {
           <p className="font-medium text-neutral-200">No rejected candidates yet</p>
         </div>
       ) : (
-        <table className="w-full text-sm text-neutral-200">
-          <thead>
+        <SearchableTable
+          placeholder="Search by candidate name…"
+          headerRow={
             <tr className="border-b border-neutral-800 text-left text-xs text-neutral-500">
               <th className="py-2 pr-3 font-medium">Sr</th>
               <th className="py-2 pr-3 font-medium">Name</th>
@@ -28,13 +30,13 @@ export default async function RejectedPage() {
               <th className="py-2 pr-3 font-medium">Comment</th>
               <th className="py-2 pr-3 font-medium"></th>
             </tr>
-          </thead>
-          <tbody>
-            {candidates.map((c) => (
-              <RejectedRow key={c.id} candidate={c} />
-            ))}
-          </tbody>
-        </table>
+          }
+          items={candidates.map((c) => ({
+            id: c.id,
+            name: c.name ?? "",
+            node: <RejectedRow key={c.id} candidate={c} />,
+          }))}
+        />
       )}
     </div>
   );
