@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import type { ScoringResult } from "@/lib/types";
 import { TIER_DOT_COLOR, TIER_STYLES, FALLBACK_STYLE, tierLabel } from "@/lib/score-colors";
 
@@ -23,7 +24,10 @@ export default function ScoreGlance({ results }: { results: ScoringResult[] }) {
         <span className="text-sm font-semibold">
           {r.role_scored} — {r.total_score ?? "—"}/100
         </span>
-        {!r.needs_manual_review && r.tier && <span className="text-xs">{tierLabel(r.tier)}</span>}
+        <div className="flex items-center gap-2">
+          <LowConfidenceNote confidence={r.confidence} />
+          {!r.needs_manual_review && r.tier && <span className="text-xs">{tierLabel(r.tier)}</span>}
+        </div>
       </div>
     );
   }
@@ -43,8 +47,26 @@ export default function ScoreGlance({ results }: { results: ScoringResult[] }) {
           {!r.needs_manual_review && r.tier && (
             <span className="text-xs text-neutral-500">({tierLabel(r.tier)})</span>
           )}
+          <LowConfidenceNote confidence={r.confidence} />
         </div>
       ))}
     </div>
+  );
+}
+
+// Explains the otherwise-confusing case where a very low score still gets
+// a soft verdict: the rubric's Asymmetric Error Policy (Part 7.5) refuses
+// to recommend REJECT when its own read of the CV is unreliable — a bad
+// score on shaky data gets held for manual review, not auto-declined.
+function LowConfidenceNote({ confidence }: { confidence: string | null }) {
+  if (confidence !== "LOW") return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs font-medium text-amber-300"
+      title="The AI isn't confident in this read of the CV (e.g. date inconsistencies) — a bad score here is held for your review rather than auto-rejected, since the score itself may be unreliable."
+    >
+      <AlertTriangle className="w-3.5 h-3.5" />
+      Low confidence
+    </span>
   );
 }

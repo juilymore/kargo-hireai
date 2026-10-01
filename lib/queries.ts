@@ -174,6 +174,51 @@ export async function getEmailHistory(): Promise<EmailHistoryRow[]> {
   });
 }
 
+// ── ACTIVITY LOG ─────────────────────────────────────────────────────────
+
+export interface ActivityLogRow {
+  id: string;
+  candidate_id: string;
+  candidate_name: string | null;
+  candidate_status: CandidateStatus;
+  candidate_srno: number;
+  action: "APPROVE" | "REJECT" | "HOLD";
+  comment: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export async function getActivityLog(): Promise<ActivityLogRow[]> {
+  const supabase = supabaseAdmin();
+  const { data: actions, error } = await supabase
+    .from("actions_log")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error || !actions || actions.length === 0) return [];
+
+  const candidateIds = [...new Set(actions.map((a) => a.candidate_id))];
+  const { data: candidates } = await supabase
+    .from("candidates")
+    .select("id, name, status, srno")
+    .in("id", candidateIds);
+  const byId = new Map((candidates ?? []).map((c) => [c.id, c]));
+
+  return actions.map((a) => {
+    const candidate = byId.get(a.candidate_id);
+    return {
+      id: a.id,
+      candidate_id: a.candidate_id,
+      candidate_name: candidate?.name ?? null,
+      candidate_status: (candidate?.status as CandidateStatus) ?? "NEW",
+      candidate_srno: candidate?.srno ?? 0,
+      action: a.action,
+      comment: a.comment,
+      created_by: a.created_by,
+      created_at: a.created_at,
+    };
+  });
+}
+
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 
 export interface DashboardFilters {
