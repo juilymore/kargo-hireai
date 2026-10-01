@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Mail, ClipboardList } from "lucide-react";
+import { ChevronDown, Mail, ClipboardList, BookOpen } from "lucide-react";
 
 export default function HeaderMoreMenu() {
   const [open, setOpen] = useState(false);
@@ -42,6 +42,14 @@ export default function HeaderMoreMenu() {
           >
             <ClipboardList className="w-4 h-4" />
             Activity Log
+          </Link>
+          <Link
+            href="/help"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+          >
+            <BookOpen className="w-4 h-4" />
+            How to Use
           </Link>
         </div>
       )}

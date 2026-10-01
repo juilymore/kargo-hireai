@@ -1,5 +1,12 @@
-function toIsoDate(d: Date): string {
+export function toIsoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+export function formatShortDate(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // Monday of the current week, in the server/browser's local calendar time.

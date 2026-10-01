@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { getDashboardData } from "@/lib/queries";
+import { getDashboardData, getWeeklySummaries } from "@/lib/queries";
 import type { RoleScored } from "@/lib/types";
 import { defaultDashboardRange } from "@/lib/date-ranges";
 import DashboardFilters from "@/components/DashboardFilters";
 import DashboardCandidateRow from "@/components/DashboardCandidateRow";
+import WeeklySummary from "@/components/WeeklySummary";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,10 @@ export default async function DashboardPage({
   const defaultRange = defaultDashboardRange();
   const from = params.from ?? defaultRange.from;
   const to = params.to ?? defaultRange.to;
-  const data = await getDashboardData({ role, from, to });
+  const [data, weekly] = await Promise.all([
+    getDashboardData({ role, from, to }),
+    getWeeklySummaries(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -97,6 +101,8 @@ export default async function DashboardPage({
           )}
         </div>
       </div>
+
+      <WeeklySummary thisWeek={weekly.thisWeek} lastWeek={weekly.lastWeek} />
     </div>
   );
 }

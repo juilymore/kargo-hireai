@@ -219,6 +219,84 @@ export async function getActivityLog(): Promise<ActivityLogRow[]> {
   });
 }
 
+// ── WEEKLY SUMMARY ───────────────────────────────────────────────────────
+
+export interface WeekSummary {
+  rangeLabel: string;
+  totalDecisions: number;
+  approved: number;
+  rejected: number;
+  held: number;
+  candidatesAdded: number;
+  sentence: string;
+}
+
+async function summarizeWeek(fromIso: string, toIsoExclusive: string, label: string): Promise<WeekSummary> {
+  const supabase = supabaseAdmin();
+  const [{ data: actions }, { data: candidates }] = await Promise.all([
+    supabase
+      .from("actions_log")
+      .select("action")
+      .gte("created_at", fromIso)
+      .lt("created_at", toIsoExclusive),
+    supabase
+      .from("candidates")
+      .select("id")
+      .gte("date_added", fromIso)
+      .lt("date_added", toIsoExclusive),
+  ]);
+
+  const approved = (actions ?? []).filter((a) => a.action === "APPROVE").length;
+  const rejected = (actions ?? []).filter((a) => a.action === "REJECT").length;
+  const held = (actions ?? []).filter((a) => a.action === "HOLD").length;
+  const totalDecisions = approved + rejected + held;
+  const candidatesAdded = (candidates ?? []).length;
+
+  let sentence: string;
+  if (totalDecisions === 0 && candidatesAdded === 0) {
+    sentence = `No activity recorded for ${label.toLowerCase()}.`;
+  } else {
+    const parts: string[] = [];
+    if (candidatesAdded > 0) {
+      parts.push(`${candidatesAdded} new candidate${candidatesAdded === 1 ? "" : "s"} added`);
+    }
+    if (totalDecisions > 0) {
+      const decisionParts: string[] = [];
+      if (approved > 0) decisionParts.push(`${approved} approved`);
+      if (rejected > 0) decisionParts.push(`${rejected} rejected`);
+      if (held > 0) decisionParts.push(`${held} held`);
+      parts.push(`${totalDecisions} decision${totalDecisions === 1 ? "" : "s"} made (${decisionParts.join(", ")})`);
+    } else {
+      parts.push("no decisions made yet");
+    }
+    sentence = `${parts.join(" · ")}.`;
+  }
+
+  return { rangeLabel: label, totalDecisions, approved, rejected, held, candidatesAdded, sentence };
+}
+
+export async function getWeeklySummaries(): Promise<{ thisWeek: WeekSummary; lastWeek: WeekSummary }> {
+  const today = new Date();
+  const day = today.getDay();
+  const diffToMonday = day === 0 ? 6 : day - 1;
+  const thisMonday = new Date(today);
+  thisMonday.setDate(thisMonday.getDate() - diffToMonday);
+  thisMonday.setHours(0, 0, 0, 0);
+
+  const nextMonday = new Date(thisMonday);
+  nextMonday.setDate(nextMonday.getDate() + 7);
+
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setDate(lastMonday.getDate() - 7);
+
+  const [thisWeek, lastWeek] = await Promise.all([
+    summarizeWeek(thisMonday.toISOString(), nextMonday.toISOString(), "This week"),
+    summarizeWeek(lastMonday.toISOString(), thisMonday.toISOString(), "Last week"),
+  ]);
+
+  return { thisWeek, lastWeek };
+}
+
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 
 export interface DashboardFilters {
