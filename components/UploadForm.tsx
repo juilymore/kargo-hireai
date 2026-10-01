@@ -264,10 +264,11 @@ export default function UploadForm() {
                   <option value="SPM">SPM only</option>
                 </select>
                 <StatusBadge status={item.status} message={item.message} />
-                {item.status === "pending" && (
+                {(item.status === "pending" || item.status === "error") && (
                   <button
                     onClick={() => removeFile(i)}
-                    className="text-neutral-500 hover:text-neutral-200 text-sm"
+                    disabled={submitting}
+                    className="text-neutral-500 hover:text-neutral-200 text-sm disabled:opacity-40"
                     aria-label="Remove"
                   >
                     ✕

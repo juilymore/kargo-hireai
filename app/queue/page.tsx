@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCandidatesByStatus } from "@/lib/queries";
 import CandidateCard from "@/components/CandidateCard";
 
@@ -35,9 +36,25 @@ export default async function QueuePage() {
 
 function EmptyState() {
   return (
-    <div className="rounded-lg border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
+    <Link
+      href="/upload"
+      className="group flex flex-col items-center gap-2 border-2 border-dashed border-neutral-600 rounded-xl p-12 text-center bg-gradient-to-b from-neutral-800/80 to-neutral-800/40 hover:border-indigo-500 hover:from-neutral-800 hover:to-neutral-800/60 hover:shadow-lg hover:shadow-indigo-900/20 transition-all duration-200"
+    >
+      <svg
+        className="w-9 h-9 text-neutral-500 group-hover:text-indigo-400 group-hover:-translate-y-0.5 transition-all duration-200"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 16V4m0 0L7 9m5-5l5 5M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"
+        />
+      </svg>
       <p className="font-medium text-neutral-200">Queue is empty</p>
-      <p className="text-sm mt-1">Upload a CV to get started — click “+ Add CVs” above.</p>
-    </div>
+      <p className="text-sm text-neutral-500">Click here to upload a CV and get started</p>
+    </Link>
   );
 }
