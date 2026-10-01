@@ -33,6 +33,37 @@ export async function extractCvText(
   throw new Error(`Unsupported file type: .${ext}. Only PDF and DOCX are supported.`);
 }
 
+export interface ExtractionResult {
+  cvText: string | null;
+  extractionError: string | null;
+}
+
+// Shared by both upload paths (direct file upload and the Drive-link
+// upload) so an empty/scanned CV is caught here once, before ever calling
+// Gemini, instead of burning an API call to have the model discover the
+// same thing and report "empty CV" back to us.
+export async function extractAndValidate(
+  buffer: Buffer,
+  fileName: string
+): Promise<ExtractionResult> {
+  try {
+    const cvText = await extractCvText(buffer, fileName);
+    if (cvText.replace(/\s/g, "").length < 30) {
+      return {
+        cvText: null,
+        extractionError:
+          "This file has little to no extractable text — it's likely a scanned image without a text layer. Try re-exporting it as a text-based PDF, or upload the DOCX version instead.",
+      };
+    }
+    return { cvText, extractionError: null };
+  } catch (err) {
+    return {
+      cvText: null,
+      extractionError: err instanceof Error ? err.message : "Unknown extraction error",
+    };
+  }
+}
+
 // Some PDFs (typically docx-to-pdf conversions) make pdf-parse emit one
 // character per line — "A\nd\ni\nt\ny\na" instead of "Aditya" — because every
 // glyph lands at a slightly different y-coordinate. Word/line boundaries in

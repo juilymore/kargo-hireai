@@ -10,12 +10,18 @@ type FileStatus =
   | "done"
   | "error";
 
-interface QueuedFile {
-  file: File;
+type QueueSource = { type: "file"; file: File } | { type: "link"; url: string };
+
+interface QueuedItem {
+  source: QueueSource;
   role: RoleRequested;
   status: FileStatus;
   message?: string;
   progress: number;
+}
+
+function displayName(source: QueueSource): string {
+  return source.type === "file" ? source.file.name : source.url;
 }
 
 // Caps per phase — progress animates toward the cap for that phase and
@@ -31,19 +37,30 @@ const PHASE_CAP: Record<FileStatus, number> = {
 };
 
 export default function UploadForm() {
-  const [queue, setQueue] = useState<QueuedFile[]>([]);
+  const [queue, setQueue] = useState<QueuedItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [driveLinkInput, setDriveLinkInput] = useState("");
   const progressTimers = useRef<Map<number, ReturnType<typeof setInterval>>>(new Map());
 
   function addFiles(fileList: FileList | null) {
     if (!fileList) return;
-    const additions: QueuedFile[] = Array.from(fileList).map((file) => ({
-      file,
+    const additions: QueuedItem[] = Array.from(fileList).map((file) => ({
+      source: { type: "file", file },
       role: "BOTH",
       status: "pending",
       progress: 0,
     }));
     setQueue((prev) => [...prev, ...additions]);
+  }
+
+  function addDriveLink() {
+    const url = driveLinkInput.trim();
+    if (!url) return;
+    setQueue((prev) => [
+      ...prev,
+      { source: { type: "link", url }, role: "BOTH", status: "pending", progress: 0 },
+    ]);
+    setDriveLinkInput("");
   }
 
   function updateRole(index: number, role: RoleRequested) {
@@ -98,10 +115,21 @@ export default function UploadForm() {
       if (item.status === "done") continue;
       try {
         updateStatus(i, "uploading");
-        const formData = new FormData();
-        formData.append("file", item.file);
-        formData.append("role_requested", item.role);
-        const uploadRes = await fetch("/api/upload-cv", { method: "POST", body: formData });
+
+        let uploadRes: Response;
+        if (item.source.type === "file") {
+          const formData = new FormData();
+          formData.append("file", item.source.file);
+          formData.append("role_requested", item.role);
+          uploadRes = await fetch("/api/upload-cv", { method: "POST", body: formData });
+        } else {
+          uploadRes = await fetch("/api/upload-cv-from-link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ drive_url: item.source.url, role_requested: item.role }),
+          });
+        }
+
         const uploadJson = await parseJsonResponse(uploadRes);
         if (!uploadRes.ok) {
           updateStatus(i, "error", uploadJson.error ?? "Upload failed");
@@ -173,16 +201,33 @@ export default function UploadForm() {
         <span className="text-xs text-neutral-500">You can select multiple files at once</span>
       </label>
 
-      <div title="Coming soon">
+      <div>
         <label className="block text-xs font-medium text-neutral-500 mb-1">
-          Google Drive link (coming soon)
+          Or paste a Google Drive link to a single resume (PDF/DOCX, shared as &quot;Anyone with
+          the link can view&quot;)
         </label>
-        <input
-          type="text"
-          disabled
-          placeholder="Drive folder or file link"
-          className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-600 cursor-not-allowed"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={driveLinkInput}
+            onChange={(e) => setDriveLinkInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addDriveLink();
+              }
+            }}
+            placeholder="https://drive.google.com/file/d/..."
+            className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder-neutral-600"
+          />
+          <button
+            onClick={addDriveLink}
+            disabled={!driveLinkInput.trim()}
+            className="px-3 py-2 rounded-md bg-neutral-800 text-neutral-200 text-sm font-medium hover:bg-neutral-700 transition-colors disabled:opacity-40"
+          >
+            Add
+          </button>
+        </div>
       </div>
 
       {queue.length > 0 && (
@@ -197,11 +242,16 @@ export default function UploadForm() {
         <ul className="space-y-2">
           {queue.map((item, i) => (
             <li
-              key={`${item.file.name}-${i}`}
+              key={`${displayName(item.source)}-${i}`}
               className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 transition-colors duration-200 hover:border-neutral-700"
             >
               <div className="flex items-center gap-3">
-                <span className="flex-1 truncate text-sm text-neutral-200">{item.file.name}</span>
+                <span className="flex-1 truncate text-sm text-neutral-200" title={displayName(item.source)}>
+                  {item.source.type === "link" && (
+                    <span className="text-xs text-indigo-300 mr-1">[Drive]</span>
+                  )}
+                  {displayName(item.source)}
+                </span>
                 <select
                   value={item.role}
                   onChange={(e) => updateRole(i, e.target.value as RoleRequested)}

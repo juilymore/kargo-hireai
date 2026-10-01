@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { extractCvText } from "@/lib/parse-cv";
+import { extractAndValidate } from "@/lib/parse-cv";
 import type { RoleRequested } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -75,22 +75,7 @@ async function handleUpload(req: NextRequest) {
   // Gemini's response) — extraction_error is stored and shown in the UI,
   // and extracted_text stays editable so Arjun can paste corrected text and
   // re-trigger scoring (guardrail #5).
-  let cvText: string | null = null;
-  let extractionError: string | null = null;
-  try {
-    cvText = await extractCvText(buffer, file.name);
-    // Scanned/image-only PDFs have no real text layer — pdf-parse returns
-    // near-empty output rather than throwing. Catch that here, before ever
-    // calling Gemini, instead of burning an API call to have the model
-    // discover the same thing and report "empty CV" back to us.
-    if (cvText.replace(/\s/g, "").length < 30) {
-      extractionError =
-        "This PDF has little to no extractable text — it's likely a scanned image without a text layer. Try re-exporting it as a text-based PDF, or upload the DOCX version instead.";
-      cvText = null;
-    }
-  } catch (err) {
-    extractionError = err instanceof Error ? err.message : "Unknown extraction error";
-  }
+  const { cvText, extractionError } = await extractAndValidate(buffer, file.name);
 
   const { data: candidate, error: insertError } = await supabase
     .from("candidates")
