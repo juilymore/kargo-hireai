@@ -40,7 +40,7 @@ export default function Header({ counts }: { counts: Record<CandidateStatus, num
             </Link>
             <HeaderDropdown
               label="Advancing"
-              icon={CheckCircle2}
+              icon={<CheckCircle2 className="w-4 h-4" />}
               items={[
                 { href: "/approved", label: "Approved", count: counts.APPROVED },
                 { href: "/hired", label: "Hired", count: counts.HIRED },
@@ -48,7 +48,7 @@ export default function Header({ counts }: { counts: Record<CandidateStatus, num
             />
             <HeaderDropdown
               label="Declined"
-              icon={XCircle}
+              icon={<XCircle className="w-4 h-4" />}
               items={[
                 { href: "/rejected", label: "Rejected", count: counts.REJECTED },
                 { href: "/hold", label: "Hold", count: counts.HOLD },
@@ -61,9 +61,13 @@ export default function Header({ counts }: { counts: Record<CandidateStatus, num
             <HeaderDropdown
               label="Resources"
               items={[
-                { href: "/help", label: "How to Use", icon: BookOpen },
-                { href: "/logs/activity", label: "Activity Log", icon: ClipboardList },
-                { href: "/logs/emails", label: "Email Log", icon: Mail },
+                { href: "/help", label: "How to Use", icon: <BookOpen className="w-4 h-4" /> },
+                {
+                  href: "/logs/activity",
+                  label: "Activity Log",
+                  icon: <ClipboardList className="w-4 h-4" />,
+                },
+                { href: "/logs/emails", label: "Email Log", icon: <Mail className="w-4 h-4" /> },
               ]}
             />
           </nav>
