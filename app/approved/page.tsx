@@ -4,6 +4,7 @@ import SearchableList from "@/components/SearchableList";
 
 export default async function ApprovedPage() {
   const candidates = await getCandidatesByStatus("APPROVED");
+  const defaultTestEmail = process.env.DEFAULT_TEST_EMAIL ?? "";
 
   return (
     <div className="space-y-4">
@@ -24,7 +25,7 @@ export default async function ApprovedPage() {
           items={candidates.map((c) => ({
             id: c.id,
             name: c.name ?? "",
-            node: <ApprovedRow key={c.id} candidate={c} />,
+            node: <ApprovedRow key={c.id} candidate={c} defaultTestEmail={defaultTestEmail} />,
           }))}
         />
       )}

@@ -11,11 +11,13 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 import type { CandidateWithDetails, InterviewStatus, RoleScored } from "@/lib/types";
 import { formatDate } from "@/lib/format-date";
 import ScoringDetail from "./ScoringDetail";
 import ScoreGlance from "./ScoreGlance";
+import EmailPreviewModal from "./EmailPreviewModal";
 
 function defaultRoleHiredFor(candidate: CandidateWithDetails): RoleScored {
   if (candidate.role_recommended?.startsWith("SPM")) return "SPM";
@@ -44,7 +46,13 @@ const INTERVIEW_STYLE: Record<InterviewStatus, { border: string; badge: string; 
   },
 };
 
-export default function ApprovedRow({ candidate }: { candidate: CandidateWithDetails }) {
+export default function ApprovedRow({
+  candidate,
+  defaultTestEmail = "",
+}: {
+  candidate: CandidateWithDetails;
+  defaultTestEmail?: string;
+}) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState(candidate.interview?.interview_notes ?? "");
@@ -54,6 +62,8 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
   const [roleHiredFor, setRoleHiredFor] = useState<RoleScored>(defaultRoleHiredFor(candidate));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState(false);
+  const [showRejectEmail, setShowRejectEmail] = useState(false);
 
   const emailSent = candidate.emails_log.some((e) => e.status === "SENT");
   const brief = [candidate.scoring_results[0]?.jd_notes, candidate.scoring_results[0]?.arjun_notes]
@@ -97,6 +107,30 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
       return;
     }
     convert(false);
+  }
+
+  // For when the interview doesn't work out — moves the candidate to
+  // Rejected and offers the same decline-email draft used from the Queue.
+  async function rejectCandidate() {
+    setRejecting(true);
+    setError(null);
+    const res = await fetch("/api/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        candidate_id: candidate.id,
+        action: "REJECT",
+        comment: notes,
+        created_by: "Arjun",
+      }),
+    });
+    const json = await res.json();
+    setRejecting(false);
+    if (!res.ok) {
+      setError(json.error ?? "Failed to reject");
+      return;
+    }
+    setShowRejectEmail(true);
   }
 
   return (
@@ -173,11 +207,20 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
 
         <button
           onClick={handleConvertClick}
-          disabled={busy}
+          disabled={busy || rejecting}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-40"
         >
           <CheckCircle2 className="w-4 h-4" />
           Convert to Hired
+        </button>
+
+        <button
+          onClick={rejectCandidate}
+          disabled={busy || rejecting}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-semibold hover:bg-red-500 disabled:opacity-40"
+        >
+          <X className="w-4 h-4" />
+          {rejecting ? "…" : "Reject"}
         </button>
 
         <button
@@ -201,6 +244,22 @@ export default function ApprovedRow({ candidate }: { candidate: CandidateWithDet
       />
 
       {expanded && <ScoringDetail results={candidate.scoring_results} />}
+
+      {showRejectEmail && (
+        <EmailPreviewModal
+          candidateId={candidate.id}
+          candidateName={candidate.name || "there"}
+          candidateEmail={candidate.email}
+          defaultTestEmail={defaultTestEmail}
+          emailType="REJECT_NOTICE"
+          schedulingLink=""
+          factualDetail={candidate.scoring_results[0]?.one_factual_detail ?? null}
+          onClose={() => {
+            setShowRejectEmail(false);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
