@@ -30,72 +30,60 @@ function latestPerRole(results: ScoringResult[]): ScoringResult[] {
   return Array.from(byRole.values()).map(withFactualDetail);
 }
 
-// Shared join logic: given raw candidate rows, attach their scoring
-// results, actions, emails, interview and hire records.
-async function attachDetails(candidates: Candidate[]): Promise<CandidateWithDetails[]> {
-  if (candidates.length === 0) return [];
-  const supabase = supabaseAdmin();
-  const ids = candidates.map((c) => c.id);
+// Fetches a candidate plus its scoring/actions/emails/interview/hire rows
+// in a single PostgREST request (nested resource embedding), instead of
+// one query for the candidate followed by 5 more for its related tables.
+// interviews/hires are aliased to the singular keys CandidateWithDetails
+// expects — PostgREST embeds them as a single object (not an array)
+// because candidate_id is UNIQUE on both tables.
+const CANDIDATE_WITH_DETAILS_SELECT =
+  "*, scoring_results(*), actions_log(*), emails_log(*), interview:interviews(*), hire:hires(*)";
 
-  const [scoringRes, actionsRes, emailsRes, interviewsRes, hiresRes] = await Promise.all([
-    supabase.from("scoring_results").select("*").in("candidate_id", ids).order("created_at", { ascending: false }),
-    supabase.from("actions_log").select("*").in("candidate_id", ids).order("created_at", { ascending: false }),
-    supabase.from("emails_log").select("*").in("candidate_id", ids).order("created_at", { ascending: false }),
-    supabase.from("interviews").select("*").in("candidate_id", ids),
-    supabase.from("hires").select("*").in("candidate_id", ids),
-  ]);
+function byCreatedAtDesc(a: { created_at: string }, b: { created_at: string }): number {
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+}
 
-  const byCandidate = <T extends { candidate_id: string }>(rows: T[] | null): Map<string, T[]> => {
-    const map = new Map<string, T[]>();
-    for (const row of rows ?? []) {
-      const list = map.get(row.candidate_id) ?? [];
-      list.push(row);
-      map.set(row.candidate_id, list);
-    }
-    return map;
+function shapeCandidate(row: Record<string, unknown>): CandidateWithDetails {
+  const { scoring_results, actions_log, emails_log, interview, hire, ...candidate } = row;
+  return {
+    ...(candidate as unknown as Candidate),
+    scoring_results: latestPerRole((scoring_results as ScoringResult[] | null) ?? []),
+    actions_log: ((actions_log as CandidateWithDetails["actions_log"]) ?? [])
+      .slice()
+      .sort(byCreatedAtDesc),
+    emails_log: ((emails_log as CandidateWithDetails["emails_log"]) ?? [])
+      .slice()
+      .sort(byCreatedAtDesc),
+    interview: (interview as CandidateWithDetails["interview"]) ?? null,
+    hire: (hire as CandidateWithDetails["hire"]) ?? null,
   };
-
-  const scoringByCandidate = byCandidate(scoringRes.data as ScoringResult[] | null);
-  const actionsByCandidate = byCandidate(actionsRes.data);
-  const emailsByCandidate = byCandidate(emailsRes.data);
-  const interviewByCandidate = new Map((interviewsRes.data ?? []).map((i) => [i.candidate_id, i]));
-  const hireByCandidate = new Map((hiresRes.data ?? []).map((h) => [h.candidate_id, h]));
-
-  return candidates.map((c) => ({
-    ...c,
-    scoring_results: latestPerRole(scoringByCandidate.get(c.id) ?? []),
-    actions_log: actionsByCandidate.get(c.id) ?? [],
-    emails_log: emailsByCandidate.get(c.id) ?? [],
-    interview: interviewByCandidate.get(c.id) ?? null,
-    hire: hireByCandidate.get(c.id) ?? null,
-  }));
 }
 
 export async function getCandidatesByStatus(
   status: CandidateStatus
 ): Promise<CandidateWithDetails[]> {
   const supabase = supabaseAdmin();
-  const { data: candidates, error } = await supabase
+  const { data, error } = await supabase
     .from("candidates")
-    .select("*")
+    .select(CANDIDATE_WITH_DETAILS_SELECT)
     .eq("status", status)
     .order("date_added", { ascending: false });
 
-  if (error || !candidates) return [];
-  return attachDetails(candidates);
+  if (error || !data) return [];
+  return data.map((row) => shapeCandidate(row as Record<string, unknown>));
 }
 
 export async function getCandidatesByIds(ids: string[]): Promise<CandidateWithDetails[]> {
   if (ids.length === 0) return [];
   const supabase = supabaseAdmin();
-  const { data: candidates, error } = await supabase
+  const { data, error } = await supabase
     .from("candidates")
-    .select("*")
+    .select(CANDIDATE_WITH_DETAILS_SELECT)
     .in("id", ids)
     .order("date_added", { ascending: false });
 
-  if (error || !candidates) return [];
-  return attachDetails(candidates);
+  if (error || !data) return [];
+  return data.map((row) => shapeCandidate(row as Record<string, unknown>));
 }
 
 export async function getStatusCounts(): Promise<Record<CandidateStatus, number>> {
@@ -118,15 +106,14 @@ export async function getCandidateWithDetails(
   candidateId: string
 ): Promise<CandidateWithDetails | null> {
   const supabase = supabaseAdmin();
-  const { data: candidate, error } = await supabase
+  const { data, error } = await supabase
     .from("candidates")
-    .select("*")
+    .select(CANDIDATE_WITH_DETAILS_SELECT)
     .eq("id", candidateId)
     .single();
 
-  if (error || !candidate) return null;
-  const [withDetails] = await attachDetails([candidate]);
-  return withDetails;
+  if (error || !data) return null;
+  return shapeCandidate(data as Record<string, unknown>);
 }
 
 // ── EMAIL HISTORY ────────────────────────────────────────────────────────
@@ -331,37 +318,12 @@ function bestScoreFor(candidate: CandidateWithDetails, role: RoleScored | "BOTH"
 export async function getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
   const supabase = supabaseAdmin();
 
-  // Narrow to candidates scored against the selected role, when filtered.
-  let roleFilteredIds: Set<string> | null = null;
-  if (filters.role !== "BOTH") {
-    const { data } = await supabase
-      .from("scoring_results")
-      .select("candidate_id")
-      .eq("role_scored", filters.role);
-    roleFilteredIds = new Set((data ?? []).map((r) => r.candidate_id));
-    if (roleFilteredIds.size === 0) {
-      return {
-        counts: {
-          queue: 0,
-          approved: 0,
-          interviewScheduled: 0,
-          hired: 0,
-          rejected: 0,
-          hold: 0,
-          totalChecked: 0,
-        },
-        topQueue: [],
-        topInterviewScheduled: [],
-      };
-    }
-  }
-
-  let query = supabase.from("candidates").select("*");
+  let query = supabase.from("candidates").select(CANDIDATE_WITH_DETAILS_SELECT);
   if (filters.from) query = query.gte("date_added", filters.from);
   if (filters.to) query = query.lte("date_added", `${filters.to}T23:59:59.999Z`);
 
-  const { data: rawCandidates, error } = await query;
-  if (error || !rawCandidates) {
+  const { data, error } = await query;
+  if (error || !data) {
     return {
       counts: { queue: 0, approved: 0, interviewScheduled: 0, hired: 0, rejected: 0, hold: 0, totalChecked: 0 },
       topQueue: [],
@@ -369,11 +331,14 @@ export async function getDashboardData(filters: DashboardFilters): Promise<Dashb
     };
   }
 
-  const filtered = roleFilteredIds
-    ? rawCandidates.filter((c) => roleFilteredIds!.has(c.id))
-    : rawCandidates;
-
-  const withDetails = await attachDetails(filtered);
+  const allDetails = data.map((row) => shapeCandidate(row as Record<string, unknown>));
+  // Narrow to candidates scored against the selected role, when filtered —
+  // done in JS now that scoring_results already rode along on the same
+  // request, instead of a separate query to pre-compute candidate ids.
+  const withDetails =
+    filters.role === "BOTH"
+      ? allDetails
+      : allDetails.filter((c) => c.scoring_results.some((r) => r.role_scored === filters.role));
 
   const queueCandidates = withDetails.filter((c) => c.status === "NEW");
   const approvedCandidates = withDetails.filter((c) => c.status === "APPROVED");
