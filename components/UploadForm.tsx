@@ -108,6 +108,16 @@ export default function UploadForm() {
     }
   }
 
+  // Best-effort cleanup: if this fails too, the candidate is just left for
+  // manual cleanup rather than compounding the original error for the user.
+  async function deleteCandidate(candidateId: string) {
+    try {
+      await fetch(`/api/candidate/${candidateId}`, { method: "DELETE" });
+    } catch {
+      // ignore
+    }
+  }
+
   async function processItem(i: number) {
     const item = queue[i];
     if (item.status === "done") return;
@@ -136,6 +146,7 @@ export default function UploadForm() {
       const candidate = uploadJson.candidate;
       if (candidate.extraction_error) {
         updateStatus(i, "error", `Parsing failed: ${candidate.extraction_error}`);
+        await deleteCandidate(candidate.id);
         return;
       }
 
@@ -169,7 +180,13 @@ export default function UploadForm() {
           scoringFailed = true;
         }
       }
-      if (!scoringFailed) updateStatus(i, "done");
+      if (!scoringFailed) {
+        updateStatus(i, "done");
+      } else if (scoreResults.every(({ scoreRes }) => !scoreRes.ok)) {
+        // Every role failed — nothing useful was saved, so don't leave an
+        // unscored "Unnamed candidate" behind in the Queue.
+        await deleteCandidate(candidate.id);
+      }
     } catch (err) {
       updateStatus(i, "error", err instanceof Error ? err.message : "Unknown error");
     }

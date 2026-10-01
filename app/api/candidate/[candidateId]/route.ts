@@ -48,3 +48,22 @@ export async function PATCH(
 
   return NextResponse.json({ candidate: data });
 }
+
+// Used when every scoring attempt for a freshly uploaded candidate fails
+// (e.g. a Gemini outage) — rather than leaving a dangling, unscored
+// "Unnamed candidate" row in the Queue, the upload flow deletes it so a
+// failed upload leaves nothing behind. Cascades to any scoring_results/
+// actions_log/emails_log rows, though a candidate in this state has none.
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ candidateId: string }> }
+) {
+  const { candidateId } = await params;
+  const supabase = supabaseAdmin();
+  const { error } = await supabase.from("candidates").delete().eq("id", candidateId);
+
+  if (error) {
+    return NextResponse.json({ error: `Failed to delete candidate: ${error.message}` }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
+}
