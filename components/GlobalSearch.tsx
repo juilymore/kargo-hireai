@@ -65,8 +65,8 @@ export default function GlobalSearch() {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Search all candidates…"
-          className="w-48 sm:w-64 rounded-md border border-neutral-700 bg-neutral-800 pl-8 pr-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-500"
+          placeholder="Search candidates…"
+          className="w-36 focus:w-56 transition-all rounded-md border border-neutral-700 bg-neutral-800 pl-8 pr-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-500"
         />
       </div>
       {open && query.trim() && (
