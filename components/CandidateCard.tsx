@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X, Pause, FileText, ChevronDown, ChevronUp } from "lucide-react";
-import type { ActionType, CandidateWithDetails, RejectReason } from "@/lib/types";
-import { REJECT_REASON_LABEL } from "@/lib/types";
+import type { ActionType, CandidateWithDetails } from "@/lib/types";
 import { formatDate } from "@/lib/format-date";
 import ScoringDetail from "./ScoringDetail";
 import ScoreGlance from "./ScoreGlance";
@@ -25,7 +24,6 @@ export default function CandidateCard({
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [comment, setComment] = useState("");
-  const [rejectReason, setRejectReason] = useState<RejectReason | "">("");
   const [submitting, setSubmitting] = useState<ActionType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<"APPROVE_INVITE" | "REJECT_NOTICE" | null>(null);
@@ -44,7 +42,6 @@ export default function CandidateCard({
         candidate_id: candidate.id,
         action,
         comment,
-        reason: action === "REJECT" ? rejectReason || null : null,
         created_by: "Arjun",
       }),
     });
@@ -55,7 +52,6 @@ export default function CandidateCard({
       return;
     }
     setComment("");
-    setRejectReason("");
     if (action === "APPROVE") setModal("APPROVE_INVITE");
     else if (action === "REJECT") setModal("REJECT_NOTICE");
     else router.refresh();
@@ -124,11 +120,6 @@ export default function CandidateCard({
 
       {candidate.actions_log.length > 0 && (
         <div className="mt-3 text-xs text-neutral-500">
-          {candidate.actions_log[0].reason && (
-            <span className="mr-1.5 px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">
-              {REJECT_REASON_LABEL[candidate.actions_log[0].reason]}
-            </span>
-          )}
           Last note: “{candidate.actions_log[0].comment}”
         </div>
       )}
@@ -136,18 +127,6 @@ export default function CandidateCard({
       {allowActions && (
         <div className="mt-3 space-y-2">
           <p className="text-xs font-medium text-neutral-500">Your decision (Arjun)</p>
-          <select
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value as RejectReason | "")}
-            className="w-full rounded-md border border-neutral-700 bg-neutral-800 text-neutral-100 px-2 py-1.5 text-sm"
-          >
-            <option value="">Reason for Reject (optional)</option>
-            {Object.entries(REJECT_REASON_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}

@@ -4,13 +4,6 @@ export type CandidateStatus = "NEW" | "APPROVED" | "REJECTED" | "HOLD" | "HIRED"
 export type Tier = "STRONG SHORTLIST" | "SHORTLIST" | "HOLD" | "DECLINE-ELIGIBLE";
 export type Verdict = "APPROVE" | "REJECT" | "REVIEW";
 export type ActionType = "APPROVE" | "REJECT" | "HOLD";
-export type RejectReason = "EXPERIENCE_GAP" | "COMP_MISMATCH" | "CULTURE_FIT" | "OTHER";
-export const REJECT_REASON_LABEL: Record<RejectReason, string> = {
-  EXPERIENCE_GAP: "Experience gap",
-  COMP_MISMATCH: "Comp mismatch",
-  CULTURE_FIT: "Culture fit",
-  OTHER: "Other",
-};
 export type EmailType = "APPROVE_INVITE" | "REJECT_NOTICE";
 export type EmailStatus = "DRAFTED" | "SENT" | "FAILED";
 export type InterviewStatus = "NOT_SCHEDULED" | "SCHEDULED" | "DONE";
@@ -63,7 +56,6 @@ export interface ActionLogEntry {
   candidate_id: string;
   action: ActionType;
   comment: string;
-  reason: RejectReason | null;
   created_at: string;
   created_by: string | null;
 }

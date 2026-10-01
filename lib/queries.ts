@@ -4,7 +4,6 @@ import type {
   Candidate,
   CandidateStatus,
   CandidateWithDetails,
-  RejectReason,
   RoleScored,
   ScoringResult,
 } from "./types";
@@ -185,7 +184,6 @@ export interface ActivityLogRow {
   candidate_srno: number;
   action: "APPROVE" | "REJECT" | "HOLD";
   comment: string;
-  reason: RejectReason | null;
   created_by: string | null;
   created_at: string;
 }
@@ -215,7 +213,6 @@ export async function getActivityLog(): Promise<ActivityLogRow[]> {
       candidate_srno: candidate?.srno ?? 0,
       action: a.action,
       comment: a.comment,
-      reason: a.reason ?? null,
       created_by: a.created_by,
       created_at: a.created_at,
     };

@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import type { ActionType, CandidateStatus, RejectReason } from "@/lib/types";
-
-const VALID_REJECT_REASONS: RejectReason[] = [
-  "EXPERIENCE_GAP",
-  "COMP_MISMATCH",
-  "CULTURE_FIT",
-  "OTHER",
-];
+import type { ActionType, CandidateStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -29,10 +22,6 @@ export async function POST(req: NextRequest) {
   const action = body?.action;
   const comment = typeof body?.comment === "string" ? body.comment.trim() : "";
   const createdBy = typeof body?.created_by === "string" ? body.created_by : null;
-  const reason =
-    action === "REJECT" && VALID_REJECT_REASONS.includes(body?.reason as RejectReason)
-      ? (body.reason as RejectReason)
-      : null;
 
   if (typeof candidateId !== "string") {
     return NextResponse.json({ error: "Missing candidate_id" }, { status: 400 });
@@ -49,7 +38,6 @@ export async function POST(req: NextRequest) {
       candidate_id: candidateId,
       action,
       comment: comment || "(no comment provided)",
-      reason,
       created_by: createdBy,
     })
     .select()

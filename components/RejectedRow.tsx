@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CandidateWithDetails } from "@/lib/types";
-import { REJECT_REASON_LABEL } from "@/lib/types";
 import { formatDate } from "@/lib/format-date";
 import EmailPreviewModal from "./EmailPreviewModal";
 import ScoringDetail from "./ScoringDetail";
@@ -17,9 +16,7 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
   const latestEmail = candidate.emails_log[0];
   const emailSent = latestEmail?.status === "SENT";
   const emailFailed = latestEmail?.status === "FAILED";
-  const rejectEntry = candidate.actions_log.find((a) => a.action === "REJECT");
-  const latestComment = rejectEntry?.comment;
-  const latestReason = rejectEntry?.reason;
+  const latestComment = candidate.actions_log.find((a) => a.action === "REJECT")?.comment;
 
   return (
     <>
@@ -49,11 +46,6 @@ export default function RejectedRow({ candidate }: { candidate: CandidateWithDet
           )}
         </td>
         <td className="py-2 pr-3 max-w-xs truncate text-neutral-300" title={latestComment}>
-          {latestReason && (
-            <span className="mr-1.5 px-1.5 py-0.5 rounded bg-neutral-800 text-xs text-neutral-300 whitespace-nowrap">
-              {REJECT_REASON_LABEL[latestReason]}
-            </span>
-          )}
           {latestComment}
         </td>
         <td className="py-2 pr-3 whitespace-nowrap">
