@@ -21,7 +21,9 @@ export default async function QueuePage() {
         // The empty state IS the uploader, not a link to it — a separate
         // "click here to upload" box that then opens /upload meant two
         // clicks to do one thing.
-        <UploadForm />
+        <div className="max-w-2xl">
+          <UploadForm />
+        </div>
       ) : (
         <SearchableList
           placeholder="Search by candidate name…"

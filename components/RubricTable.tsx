@@ -174,7 +174,7 @@ function RubricSection({
         </span>
       </div>
       {note && <p className="text-xs text-neutral-500 mb-3">{note}</p>}
-      <div className="space-y-3">
+      <div className="grid lg:grid-cols-2 gap-3">
         {rows.map((c) => (
           <div key={c.id} className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
             <div className="flex items-center gap-3 mb-2">
